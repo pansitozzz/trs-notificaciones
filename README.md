@@ -4,7 +4,7 @@ Sistema web de gestión de maquinaria y trabajadores con notificaciones en tiemp
 
 ## Problema / contexto
 
-Proyecto propio, sin cliente ni terceros de por medio. Lo construí para una empresa real (TRS SAC) que necesitaba llevar el control de su maquinaria, el personal asignado a cada equipo y las alertas de mantenimiento, todo en un solo sistema.
+Proyecto propio, sin cliente ni terceros de por medio. Lo construí para llevar el control de maquinaria, el personal asignado a cada equipo y las alertas de mantenimiento, todo en un solo sistema.
 
 El sistema estuvo desplegado en producción real en el dominio `trsadmin.site`, sobre un hosting compartido de GoDaddy administrado con cPanel (Passenger WSGI).
 
