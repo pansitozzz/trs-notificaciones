@@ -45,11 +45,17 @@ Crea una base de datos MySQL vacía con el nombre que pusiste en `DB_NAME` y apl
 python manage.py migrate
 ```
 
-### 4. Crear un usuario administrador
+Esto crea todas las tablas, incluidas varias que en el despliegue original ya existían en el servidor (por eso los modelos correspondientes están marcados como `managed = False`). La migración `0010_crear_tablas_heredadas` se encarga de crearlas también en una base de datos nueva, sin pasos manuales adicionales.
+
+### 4. Crear el primer usuario para iniciar sesión
+
+El login de la app usa un modelo propio (`Trabajador`), no el sistema de usuarios de Django, así que `createsuperuser` no sirve para entrar a la app (solo da acceso al `/admin/` de Django, donde estos modelos no están registrados). Usa este comando en su lugar:
 
 ```bash
-python manage.py createsuperuser
+python manage.py crear_trabajador_admin --usuario admin --password "tu-password"
 ```
+
+Si no pasas `--usuario`/`--password`, se crea `admin` / `admin1234` por defecto.
 
 ### 5. Levantar el servidor
 

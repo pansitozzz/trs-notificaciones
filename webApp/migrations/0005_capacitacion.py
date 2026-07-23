@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'webApp_capacitacion',
-                'managed': True,
+                'managed': False,
             },
         ),
     ]

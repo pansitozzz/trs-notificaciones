@@ -112,6 +112,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'afp',
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -122,6 +123,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'banco',
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -132,6 +134,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'distrito_residencia',
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -142,6 +145,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'privilegios',
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -152,6 +156,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'webApp_statuscapacitacion',
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -162,6 +167,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'status_tra',
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -175,7 +181,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'registro_horas',
-                'managed': True,
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -194,7 +200,7 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Notificaciones de Eventos',
                 'db_table': 'notificaciones_eventos',
                 'ordering': ['-fecha_creacion'],
-                'managed': True,
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -210,6 +216,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Historial de Login',
                 'verbose_name_plural': 'Historiales de Login',
                 'ordering': ['-timestamp'],
+                'managed': False,
             },
         ),
         migrations.CreateModel(
@@ -225,7 +232,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'webApp_capacitacion',
-                'managed': True,
+                'managed': False,
             },
         ),
     ]

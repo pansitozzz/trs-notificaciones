@@ -13,6 +13,7 @@ class StatusTra(models.Model):
     status_tra = models.CharField(max_length=50)
     class Meta:
         db_table = 'status_tra'
+        managed = False
     def __str__(self):
         return self.status_tra
 
@@ -21,6 +22,7 @@ class Privilegio(models.Model):
     privilegio = models.CharField(max_length=50)
     class Meta:
         db_table = 'privilegios'
+        managed = False
     def __str__(self):
         return self.privilegio
 
@@ -29,6 +31,7 @@ class AFP(models.Model):
     nombre = models.CharField(max_length=50)
     class Meta:
         db_table = 'afp'
+        managed = False
     def __str__(self):
         return self.nombre
 
@@ -37,6 +40,7 @@ class Banco(models.Model):
     nombre = models.CharField(max_length=50)
     class Meta:
         db_table = 'banco'
+        managed = False
     def __str__(self):
         return self.nombre
 
@@ -45,6 +49,7 @@ class DistritoResidencia(models.Model):
     nombre = models.CharField(max_length=50)
     class Meta:
         db_table = 'distrito_residencia'
+        managed = False
     def __str__(self):
         return self.nombre
 
@@ -202,7 +207,7 @@ class RegistroHoras(models.Model):
 
     class Meta:
         db_table = 'registro_horas'
-        managed = True
+        managed = False
 
     def __str__(self):
         return f"{self.trabajador} - {self.fecha} - {self.horas}hrs"
@@ -246,8 +251,7 @@ class Capacitacion(models.Model):
 
     class Meta:
         db_table = "webApp_capacitacion"
-        managed = True # Esta la creaste tú manualmente, así que Django puede gestionarla o puedes poner False. 
-                      # Ponlo en True si quieres que Django gestione futuros cambios, pero recuerda usar --fake si ya existe.
+        managed = False
 
     def __str__(self):
         return f"{self.trabajador} - {self.maquina} ({self.estado})"
@@ -283,7 +287,7 @@ class Notificacion(models.Model):
         ordering = ['-fecha_creacion']
         verbose_name = 'Notificación de Evento'
         verbose_name_plural = 'Notificaciones de Eventos'
-        managed = True 
+        managed = False
 
     def __str__(self):
         return f"Notificación: {self.mensaje}"
@@ -303,6 +307,7 @@ class HistorialLogin(models.Model):
         verbose_name = "Historial de Login"
         verbose_name_plural = "Historiales de Login"
         ordering = ['-timestamp']
+        managed = False
         
 
 
