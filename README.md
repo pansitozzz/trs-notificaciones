@@ -61,4 +61,11 @@ El sistema queda disponible en `http://127.0.0.1:8000/`.
 
 ## Capturas
 
-_(Pendiente: agregar capturas de pantalla del dashboard, maquinaria y notificaciones.)_
+![Panel de control con métricas de órdenes de trabajo y gráficos de uso de maquinaria](docs/screenshots/dashboard.png)
+*Panel de control con órdenes pendientes/completadas, ranking de trabajadores y uso de maquinaria (datos de demostración).*
+
+![Listado de maquinaria con su estado operativo](docs/screenshots/maquinaria.png)
+*Gestión de maquinaria: listado con estado (operativo / en mantenimiento) y acciones de edición (datos de demostración).*
+
+![Modal de notificaciones con las últimas asignaciones](docs/screenshots/notificaciones.png)
+*Notificaciones en tiempo real sobre asignaciones y estado de la maquinaria, accesibles desde el ícono de campana (datos de demostración).*

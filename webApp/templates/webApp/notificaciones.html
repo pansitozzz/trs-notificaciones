@@ -3,7 +3,7 @@
     {% for n in notificaciones %}
         <a href="{{ n.url }}" class="list-group-item list-group-item-action">
             <strong>{{ n.tipo|title }}:</strong> {{ n.mensaje }}<br>
-            <small class="text-muted">{{ n.fecha|date:"d/m/Y H:i" }}</small>
+            <small class="text-muted">{{ n.fecha|date:"d/m/Y" }}</small>
         </a>
     {% endfor %}
 </div>
