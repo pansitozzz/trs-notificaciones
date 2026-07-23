@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Encuesta de Empleabilidad</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        .form-input { width: 100%; padding: 10px; margin: 5px 0 15px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .btn-primary { background: #0d47a1; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1rem; }
+        h2 { color: #0d47a1; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>📋 Encuesta: {{ egresado.nombres }} {{ egresado.apellidos }}</h2>
+        <p style="color: #666; margin-bottom: 20px;">Por favor, complete la información laboral del egresado.</p>
+        
+        <form method="POST">
+            {% csrf_token %}
+            
+            <label>1. ¿Cuánto tiempo tardó en conseguir empleo?</label>
+            {{ form.tiempo_empleo }}
+
+            <label>2. ¿Su trabajo actual está relacionado con su carrera?</label>
+            {{ form.es_relacionado }}
+
+            <label>3. Califique la preparación universitaria (1-5)</label>
+            {{ form.calificacion_prep }}
+
+            <label>4. ¿Qué competencias adicionales considera necesarias?</label>
+            {{ form.competencias }}
+
+            <label>5. ¿Recomendaría la universidad?</label>
+            {{ form.recomendaria }}
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <a href="{% url 'registro_egresado' %}" style="text-decoration: none; color: #666; padding: 12px;">Cancelar</a>
+                <button type="submit" class="btn-primary">Guardar Encuesta</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mi Proyecto{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="{% url 'login' %}">
+                <img src="{% static 'img/logotrssac.png' %}" alt="Logo" class="logo">
+            </a>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>Copyright 2025 Todos los derechos reservados | Web elaborada por el Equipo de Desarrolladores</p>
+    </footer>
+
+    <script>
+        function mostrarGestionTrabajadores() {
+            // Oculta seccion de bienvenida
+            const welcomeSection = document.querySelector(".welcome-section");
+            if (welcomeSection) welcomeSection.style.display = "none";
+
+            // Mueve nombre y rol al navbar
+            const nombre = document.querySelector(".welcome-section .welcome-title").textContent;
+            const rol = document.querySelector(".welcome-section .user-role strong").textContent;
+            document.getElementById("nombre-navbar").textContent = nombre;
+            document.getElementById("rol-navbar").textContent = rol;
+            document.getElementById("usuario-navbar").style.display = "inline-block";
+
+            // Muestra tabla de gestion automaticamente
+            mostrarFormulario('form-mostrar');
+        }
+    </script>
+
+</body>
+</html>

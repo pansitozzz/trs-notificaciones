@@ -1,0 +1,693 @@
+{% extends "webApp/base.html" %}
+{% block title %}Asignaciones{% endblock %}
+{% block content %}
+
+{% if messages %}
+<div class="container mt-3" style="z-index: 2001; position: relative;">
+    {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+<div class="container mt-4 mb-5">
+    <h2 class="mb-4 text-center">Gestión de Asignaciones</h2>
+
+    <form method="get" class="mb-3">
+        <div class="input-group">
+            <select name="estado" class="form-select">
+                <option value="">Mostrar todas</option>
+                {% for status in status_list %}
+                    <option value="{{ status.nombre }}" {% if estado_filtro == status.nombre %}selected{% endif %}>
+                        {{ status.nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+        </div>
+    </form>
+
+    {% if usuario.id_privilegio.id_privilegio == 2 %}
+    <div class="text-end mb-3">
+        <button class="btn btn-success" onclick="abrirModalAsignacion()">+ Nueva Asignación</button>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-5 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <button class="btn btn-outline-primary btn-sm" onclick="cambiarMes(-1)">←</button>
+                <h5 id="titulo-mes" class="m-0"></h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="cambiarMes(1)">→</button>
+            </div>
+            <div id="calendario" class="calendario"></div>
+        </div>
+
+        <div class="col-lg-7">
+            <div id="asignaciones-container" class="row row-cols-1 row-cols-md-2 g-4">
+                {% for asig in asignaciones %}
+                <div class="col asignacion-card"
+                     data-fecha="{{ asig.fecha_asig|date:'Y-m-d' }}"
+                     data-fin="{% if asig.fin_asig %}{{ asig.fin_asig|date:'Y-m-d' }}{% else %}{{ asig.fecha_asig|date:'Y-m-d' }}{% endif %}">
+                    <div class="card h-100 shadow border-primary">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-primary d-flex justify-content-between align-items-center">
+                                <span>
+                                    {{ asig.id_emp.first_name }} {{ asig.id_emp.apellido_pat }}
+                                    <span class="badge 
+                                        {% if asig.id_status.nombre == 'Pendiente' %}bg-warning text-dark
+                                        {% elif asig.id_status.nombre == 'En Proceso' %}bg-success
+                                        {% elif asig.id_status.nombre == 'Completada' %}bg-secondary
+                                        {% endif %}">
+                                        {{ asig.id_status.nombre }}
+                                    </span>
+                                </span>
+
+                                {% if usuario.id_privilegio.id_privilegio == 3 %}
+                                <a class="btn btn-outline-primary"
+                                   onclick="abrirModalEstado('{{ asig.id_asig }}', '{{ asig.id_status.nombre }}')">Cambiar estado</a>
+                                {% endif %}
+                            </h5>
+
+                            <p class="card-text"><strong>Maquinaria:</strong> {{ asig.id_maq.equipo }} - {{ asig.id_maq.marca }}</p>
+                            <p class="card-text"><strong>Inicio:</strong> {{ asig.fecha_asig|date:"j \\d\\e F \\d\\e Y" }}</p>
+                            <p class="card-text"><strong>Fin:</strong> {{ asig.fin_asig|date:"j \\d\\e F \\d\\e Y"|default:"-" }}</p>
+                            <p class="card-text"><strong>Descripción:</strong> {{ asig.descripcion|default:"Sin descripción" }}</p>
+                        </div>
+
+                        <div class="card-footer bg-light text-muted d-flex justify-content-between align-items-center">
+                            <small>Asignado por: <strong>{{ asig.id_creador.first_name }} {{ asig.id_creador.apellido_pat }}</strong></small>
+                            {% if usuario.id_privilegio.id_privilegio == 2 %}
+                                <button class="btn btn-outline-secondary btn-sm ms-2"
+                                        onclick="abrirModalEditar(
+                                            '{{ asig.id_asig }}', 
+                                            '{{ asig.id_emp.id_emp }}', 
+                                            '{{ asig.id_maq.id_maq }}', 
+                                            '{{ asig.fecha_asig|date:'Y-m-d' }}', 
+                                            '{% if asig.fin_asig %}{{ asig.fin_asig|date:'Y-m-d' }}{% else %}{{ asig.fecha_asig|date:'Y-m-d' }}{% endif %}', 
+                                            '{{ asig.descripcion|escapejs }}'
+                                        )">
+                                    ✏️
+                                </button>
+                            {% endif %}
+                            <div>
+                                {% if asig.id_status.id_status == 3 and usuario.id_privilegio.id_privilegio == 3 and not asig.foto_finalizada %}
+                                    <button class="btn btn-info btn-sm" 
+                                            onclick="abrirModalFoto('{{ asig.id_asig }}')">
+                                        Subir Foto
+                                    </button>
+                                {% endif %}
+                                
+                                {% if asig.foto_finalizada %}
+                                    {% if usuario.id_privilegio.id_privilegio == 1 or usuario.id_privilegio.id_privilegio == 2 %}
+                                        <a href="{{ asig.foto_finalizada.url }}" target="_blank" 
+                                           rel="noopener noreferrer"
+                                           class="btn btn-outline-dark btn-sm">
+                                            Ver Foto
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        </div>
+                </div>
+                {% empty %}
+                <div class="col">
+                    <div class="alert alert-info text-center w-100">
+                        No hay asignaciones registradas.
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-3 text-end">
+                <button class="btn btn-outline-secondary btn-sm" onclick="resetFiltrado()">Ver todas</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="modal-asignacion" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2>Nueva Asignación</h2>
+        <form id="form-asignacion" method="post" action="{% url 'crear_asignacion' %}">
+            {% csrf_token %}
+
+            <label for="id_emp">Operador:</label>
+            <select name="id_emp" id="id_emp" required>
+                <option value="">Selecciona un operador</option>
+                {% for op in operadores %}
+                <option value="{{ op.id_emp }}">
+                    {{ op.first_name }} {{ op.apellido_pat }} {{ op.apellido_mat }} (DNI: {{ op.dni }})
+                </option>
+                {% endfor %}
+            </select>
+
+            <label for="id_maq">Maquinaria:</label>
+            <select name="id_maq" class="form-select" required>
+            <option value="">-- Seleccione maquinaria --</option>
+            {% for maq in maquinas %}
+                <option value="{{ maq.id_maq }}">{{ maq.equipo }} ({{ maq.marca }})</option>
+            {% endfor %}
+            </select>
+
+            <label for="fecha_asig">Fecha de inicio:</label>
+            <input type="date" name="fecha_asig" id="fecha_asig" required>
+
+            <label for="fin_asig">Fecha de fin:</label>
+            <input type="date" name="fin_asig" id="fin_asig">
+
+            <label for="descripcion">Descripción:</label>
+            <textarea name="descripcion" id="descripcion" rows="3"></textarea>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-success" id="btn-submit-asig">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalAsignacion()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-estado" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2>Cambiar Estado</h2>
+        <form id="form-estado" method="post" action="{% url 'cambiar_estado_asignacion' %}">
+            {% csrf_token %}
+            <input type="hidden" name="id_asig" id="estado-id-asig">
+            <select name="id_status" id="estado-select" required>
+                {% for status in status_list %}
+                    <option value="{{ status.id_status }}">{{ status.nombre }}</option>
+                {% endfor %}
+            </select>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-success">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalEstado()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-foto" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2>Subir Foto de Finalización</h2>
+        <form id="form-foto" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <label for="id_foto_finalizada">Seleccionar imagen:</label>
+            <input type="file" name="foto_finalizada" id="id_foto_finalizada" 
+                   accept="image/*" required class="form-control mb-3">
+            
+            <p class="text-muted small" style="font-size: 12px; color: #6c757d;">Solo se aceptan archivos de imagen.</p>
+            
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-success">Subir Foto</button>
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalFoto()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-editar-asignacion" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2>Editar Asignación</h2>
+        <form id="form-editar-asignacion" method="post">
+            {% csrf_token %}
+            
+            <label for="edit_id_emp">Operador:</label>
+            <select name="id_emp" id="edit_id_emp" required>
+                {% for op in operadores %}
+                <option value="{{ op.id_emp }}">
+                    {{ op.first_name }} {{ op.apellido_pat }} ({{ op.dni }})
+                </option>
+                {% endfor %}
+            </select>
+
+            <label for="edit_id_maq">Maquinaria:</label>
+            <select name="id_maq" id="edit_id_maq" class="form-select" required>
+                {% for maq in maquinas %}
+                <option value="{{ maq.id_maq }}">{{ maq.equipo }} ({{ maq.marca }})</option>
+                {% endfor %}
+            </select>
+
+            <label for="edit_fecha_asig">Fecha de inicio:</label>
+            <input type="date" name="fecha_asig" id="edit_fecha_asig" required>
+
+            <label for="edit_fin_asig">Fecha de fin:</label>
+            <input type="date" name="fin_asig" id="edit_fin_asig">
+
+            <label for="edit_descripcion">Descripción:</label>
+            <textarea name="descripcion" id="edit_descripcion" rows="3"></textarea>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary" id="btn-submit-edit">Actualizar</button>
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalEditar()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+<style>
+/* ... (Todo tu CSS existente, sin cambios) ... */
+/* ====== Modal Asignación ====== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    justify-content: center; align-items: center;
+}
+.modal-content {
+    background: #fff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    width: 420px;
+    max-height: 90%;
+    overflow-y: auto;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+    animation: fadeInDown 0.3s ease-out;
+}
+.modal-content h2 {
+    margin-top: 0;
+    text-align: center;
+    color: #333;
+    font-size: 20px;
+    margin-bottom: 15px;
+}
+.modal-content label {
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #444;
+}
+.modal-content select,
+.modal-content input[type="date"],
+.modal-content input[type="file"], /* <-- Añadí esto para tu nuevo input */
+.modal-content textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border 0.2s;
+}
+.modal-content select:focus,
+.modal-content input[type="date"]:focus,
+.modal-content input[type="file"]:focus, /* <-- Añadí esto */
+.modal-content textarea:focus {
+    border-color: #4CAF50;
+}
+.modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* ====== Calendario ====== */
+.calendario {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    text-align: center;
+}
+.item-calendario {
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+.item-calendario.header {
+    font-weight: bold;
+    background: #f8f9fa;
+}
+.item-calendario.dia:hover {
+    background: #e9f7ef;
+}
+.item-calendario.hoy {
+    background: #0d6efd !important; /* azul de bootstrap */
+    color: #fff !important;
+    font-weight: bold;
+    border: 2px solid #084298;
+}
+.item-calendario.inicio {
+    background: #198754; color: #fff;
+}
+.item-calendario.rango {
+    background: #81c784; color: #fff;
+}
+.item-calendario.activo {
+    outline: 2px solid #0d6efd;
+}
+.item-calendario.vacio {
+    cursor: default;
+    background: transparent;
+}
+</style>
+
+<script>
+/* ... (Todo tu JS del calendario, sin cambios) ... */
+/* ================== datos de asignaciones ================== */
+const asignacionesData = [
+    {% for asig in asignaciones %}
+    { start: "{{ asig.fecha_asig|date:'Y-m-d' }}", end: "{% if asig.fin_asig %}{{ asig.fin_asig|date:'Y-m-d' }}{% else %}{{ asig.fecha_asig|date:'Y-m-d' }}{% endif %}" }
+    {% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+/* =========================================================== */
+
+let fechaActual = new Date();
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function parseYMDToUTC(ymd){ if(!ymd) return NaN; const p = ymd.split('-').map(x=>parseInt(x,10)); return Date.UTC(p[0], p[1]-1, p[2]); }
+function utcToYMD(utc){ const d = new Date(utc); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`; }
+
+function renderCalendario(fecha){
+    const calendario = document.getElementById("calendario");
+    const titulo = document.getElementById("titulo-mes");
+    calendario.innerHTML = "";
+
+    const mes = fecha.getMonth();
+    const anio = fecha.getFullYear();
+    const nombresMeses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    titulo.textContent = `${nombresMeses[mes]} ${anio}`;
+
+    const diasSemana = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+    diasSemana.forEach(d => {
+        const div = document.createElement("div");
+        div.textContent = d;
+        div.classList.add("item-calendario","header");
+        if (d === "Dom") div.style.color = "red";
+        calendario.appendChild(div);
+    });
+
+    const primerDia = new Date(anio, mes, 1);
+    let inicioSemana = primerDia.getDay();
+    if(inicioSemana === 0) inicioSemana = 7;
+    for (let i=1; i<inicioSemana; i++){
+        const div = document.createElement("div");
+        div.classList.add("item-calendario","vacio");
+        calendario.appendChild(div);
+    }
+
+    const ultimoDia = new Date(anio, mes+1, 0).getDate();
+
+    // fecha de hoy
+    const hoy = new Date();
+    const hoyStr = `${hoy.getFullYear()}-${pad(hoy.getMonth()+1)}-${pad(hoy.getDate())}`;
+
+    for (let d=1; d<=ultimoDia; d++){
+        const div = document.createElement("div");
+        const dateStr = `${anio}-${pad(mes+1)}-${pad(d)}`;
+        div.textContent = pad(d);
+        div.classList.add("item-calendario","dia");
+        div.dataset.date = dateStr;
+
+        // sombrear el día actual
+        if (dateStr === hoyStr) {
+            div.classList.add("hoy");
+        }
+
+        // marcar inicio (solo fecha_asig)
+        asignacionesData.forEach(asig=>{
+            if(asig.start === dateStr){
+                div.classList.add("inicio");
+                div.addEventListener("click", ()=>resaltarRango(asig));
+            }
+        });
+
+        calendario.appendChild(div);
+    }
+}
+
+function resaltarRango(asig){
+    // limpiar rangos previos
+    document.querySelectorAll(".item-calendario.dia").forEach(el=>{
+        el.classList.remove("rango","activo");
+    });
+
+    const startUTC = parseYMDToUTC(asig.start);
+    const endUTC = parseYMDToUTC(asig.end);
+
+    for(let t=startUTC; t<=endUTC; t+=24*60*60*1000){
+        const dateStr = utcToYMD(t);
+        const el = document.querySelector(`.item-calendario.dia[data-date="${dateStr}"]`);
+        if(el){
+            el.classList.add("rango");
+            if(dateStr === asig.start) el.classList.add("inicio","activo");
+        }
+    }
+
+    // filtrar cards
+    document.querySelectorAll(".asignacion-card").forEach(card=>{
+        if(card.dataset.fecha === asig.start) card.style.display = "block";
+        else card.style.display = "none";
+    });
+}
+
+function cambiarMes(delta){
+    fechaActual.setMonth(fechaActual.getMonth()+delta);
+    renderCalendario(fechaActual);
+    resetFiltrado();
+}
+
+function resetFiltrado(){
+    document.querySelectorAll(".item-calendario.dia").forEach(el=>el.classList.remove("rango","activo"));
+    document.querySelectorAll(".asignacion-card").forEach(card=>card.style.display="block");
+}
+
+/* ... (Todo tu JS de AJAX para crear asignación y cambiar estado, sin cambios) ... */
+/* ========== envío AJAX del formulario del modal ========== */
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener("DOMContentLoaded", ()=> {
+    renderCalendario(fechaActual);
+
+    const form = document.getElementById('form-asignacion');
+    if(form){
+        form.addEventListener('submit', async function(e){
+            e.preventDefault();
+            const submitBtn = document.getElementById('btn-submit-asig');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Guardando...';
+
+            const action = form.action;
+            const formData = new FormData(form);
+            const tokenInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
+            const csrftoken = tokenInput ? tokenInput.value : getCookie('csrftoken');
+
+            try {
+                const res = await fetch(action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                if (res.ok) {
+                    try {
+                        const json = await res.json();
+                        if (json && json.success === false) {
+                            alert(json.message || 'Error al guardar. Revisa los datos.');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Guardar';
+                            location.reload();
+                            return;
+                        }
+                    } catch (err) { }
+
+                    cerrarModalAsignacion();
+                    location.reload();
+                    return;
+                } else if (res.status === 302 || res.redirected) {
+                    location.reload();
+                } else {
+                    const txt = await res.text();
+                    console.error('Error al guardar:', res.status, txt);
+                    alert('Error al guardar la asignación. Revisa la consola.');
+                }
+            } catch (err) {
+                console.error('Error de red al guardar:', err);
+                alert('Error de red al intentar guardar la asignación.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Guardar';
+            }
+        });
+    }
+});
+
+/* ====== Cambiar Estado Asignación ====== */
+function abrirModalEstado(id, estadoNombre){
+    document.getElementById("estado-id-asig").value = id;
+    const select = document.getElementById("estado-select");
+    for (let option of select.options) {
+        if (option.text === estadoNombre) {
+            option.selected = true;
+            break;
+        }
+    }
+    document.getElementById("modal-estado").style.display = "flex";
+}
+function cerrarModalEstado(){
+    document.getElementById("modal-estado").style.display = "none";
+}
+
+/* Envío AJAX para cambio de estado */
+document.addEventListener("DOMContentLoaded", ()=>{
+    const formEstado = document.getElementById("form-estado");
+    if(formEstado){
+        formEstado.addEventListener("submit", async function(e){
+            e.preventDefault();
+            const formData = new FormData(formEstado);
+            const csrftoken = getCookie('csrftoken');
+            try {
+                const res = await fetch(formEstado.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                if(res.ok){ location.reload(); }
+                else alert("Error al cambiar estado");
+            } catch(err){ console.error(err); alert("Error de red"); }
+        });
+    }
+});
+
+/* ========================================================= */
+
+function abrirModalAsignacion(){ document.getElementById("modal-asignacion").style.display="flex"; }
+function cerrarModalAsignacion(){ document.getElementById("modal-asignacion").style.display="none"; }
+
+
+/* ========================================================= */
+/* === 4. JS PARA EL NUEVO MODAL DE FOTO === */
+/* ========================================================= */
+function abrirModalFoto(id_asig) {
+    const form = document.getElementById("form-foto");
+    
+    // 1. Construimos la URL usando el 'name' que definimos en urls.py
+    //    Usamos '0' como placeholder que reemplazaremos.
+    const urlTemplate = "{% url 'subir_foto_asignacion' 0 %}";
+    
+    // 2. Asignamos la URL correcta al 'action' del formulario
+    form.action = urlTemplate.replace('0', id_asig); 
+    
+    // 3. Mostramos el modal
+    document.getElementById("modal-foto").style.display = "flex";
+}
+
+function cerrarModalFoto() {
+    const form = document.getElementById("form-foto");
+    form.reset(); // Limpia el input del archivo por si el usuario seleccionó uno
+    form.action = ""; // Limpia la acción
+    document.getElementById("modal-foto").style.display = "none";
+}
+/* ========================================================= */
+
+
+
+/* ========================================================= */
+/* === 5. JS PARA EL MODAL DE EDITAR ASIGNACIÓN === */
+/* ========================================================= */
+
+function abrirModalEditar(idAsig, idEmp, idMaq, fechaInicio, fechaFin, descripcion) {
+    // 1. Rellenar los campos con los datos actuales
+    document.getElementById('edit_id_emp').value = idEmp;
+    document.getElementById('edit_id_maq').value = idMaq;
+    document.getElementById('edit_fecha_asig').value = fechaInicio;
+    document.getElementById('edit_fin_asig').value = fechaFin;
+    document.getElementById('edit_descripcion').value = descripcion;
+
+    // 2. Configurar la URL del formulario
+    // Usamos un placeholder '0' en la URL de Django y lo reemplazamos por el ID real
+    const urlTemplate = "{% url 'editar_asignacion' 0 %}"; 
+    const form = document.getElementById('form-editar-asignacion');
+    form.action = urlTemplate.replace('0', idAsig);
+
+    // 3. Mostrar el modal
+    document.getElementById('modal-editar-asignacion').style.display = 'flex';
+}
+
+function cerrarModalEditar() {
+    document.getElementById('modal-editar-asignacion').style.display = 'none';
+}
+
+// AJAX PARA EL FORMULARIO DE EDICIÓN
+document.addEventListener("DOMContentLoaded", ()=> {
+    const formEdit = document.getElementById('form-editar-asignacion');
+    if(formEdit){
+        formEdit.addEventListener('submit', async function(e){
+            e.preventDefault();
+            const submitBtn = document.getElementById('btn-submit-edit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Guardando...';
+
+            const action = formEdit.action;
+            const formData = new FormData(formEdit);
+            const csrftoken = getCookie('csrftoken');
+
+            try {
+                const res = await fetch(action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const json = await res.json();
+
+                if (json.success) {
+                    cerrarModalEditar();
+                    location.reload(); // Recargar para ver los cambios y mensajes
+                } else {
+                    alert(json.message || 'Error al actualizar.');
+                }
+
+            } catch (err) {
+                console.error('Error:', err);
+                alert('Error de red al actualizar.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Actualizar';
+            }
+        });
+    }
+});
+
+
+
+</script>
+
+
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "webApp/base2.html" %}
+{% block title %}Cambiar Contrasena{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Cambiar Contrasena</h2>
+
+    {% if messages %}
+    <div class="alert-container">
+        {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'cambiar_contrasena' %}">
+        {% csrf_token %}
+        <label for="username">Usuario:</label>
+        <input type="text" id="username" name="username" required>
+
+        <label for="dni">DNI:</label>
+        <input type="text" id="dni" name="dni" required>
+
+        <label for="nueva_contrasena">Nueva Contraseña:</label>
+        <input type="password" id="nueva_contrasena" name="nueva_contrasena" required>
+
+        <label for="confirmar_contrasena">Confirmar Contraseña:</label>
+        <input type="password" id="confirmar_contrasena" name="confirmar_contrasena" required>
+
+        <button type="submit">Guardar Cambios</button>
+        <a href="{% url 'login' %}" class="return-link">Regresar al login</a>
+
+    </form>      
+    
+</div>
+{% endblock %}

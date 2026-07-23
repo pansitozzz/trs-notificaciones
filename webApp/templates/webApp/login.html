@@ -1,0 +1,41 @@
+{% extends "webApp/base2.html" %}
+{% load static %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <!-- Imagen a la izquierda -->
+    <div class="login-image">
+        <img src="{% static 'img/maq_trssac.jpeg' %}" alt="Imagen Login">
+    </div>
+
+    <!-- Formulario a la derecha -->
+    <div class="login-form">
+        <h2>Iniciar Sesion</h2>
+
+        {% if messages %}
+            <div class="alert">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <label for="username">Usuario</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">Contrasena</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Ingresar</button>
+            <p class="forgot-password">
+                <a href="{% url 'cambiar_contrasena' %}">¿Olvidaste tu contraseña?</a>
+                
+            </p>
+        </form>
+    </div>
+</div>
+{% endblock %}

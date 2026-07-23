@@ -1,0 +1,726 @@
+{% extends "webApp/base.html" %}
+{% load static %}
+{% block title %}Dashboard Integral{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<style>
+    /* === ESTILOS DEL DASHBOARD === */
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 2rem auto;
+        padding: 0 15px;
+    }
+
+    /* Tarjetas KPI */
+    .card-kpi {
+        border: none;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
+        height: 100%;
+        overflow: hidden;
+    }
+    .card-kpi:hover { transform: translateY(-3px); }
+    
+    .kpi-icon {
+        width: 50px; height: 50px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; margin-right: 15px;
+    }
+    .kpi-content h3 { font-weight: 800; margin: 0; font-size: 1.8rem; }
+    .kpi-content p { margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
+
+    /* Colores KPI */
+    .kpi-blue { background: #e3f2fd; color: #0d6efd; }
+    .kpi-green { background: #e8f5e9; color: #198754; }
+    .kpi-orange { background: #fff3e0; color: #fd7e14; }
+    .kpi-red { background: #fce8e6; color: #dc3545; }
+
+    /* Gráficos y Contenedores */
+    .chart-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        height: 100%;
+        border: 1px solid #f0f0f0;
+        min-height: 400px;
+    }
+    .chart-title { font-size: 1rem; font-weight: 700; color: #444; margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+
+    /* Navegación Tabs (Centradas) */
+    .nav-pills {
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 2rem;
+    }
+    .nav-pills .nav-link {
+        color: #555;
+        font-weight: 600;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 50px;
+        padding: 10px 25px;
+        transition: all 0.2s;
+    }
+    .nav-pills .nav-link.active {
+        background-color: #0d6efd;
+        color: #fff;
+        border-color: #0d6efd;
+        box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+    }
+    .nav-pills .nav-link:hover:not(.active) {
+        background-color: #f8f9fa;
+    }
+
+    /* Tablas internas */
+    .table-dashboard thead th {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+</style>
+
+<div class="dashboard-container">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark m-0">Panel de Control</h2>
+            <p class="text-muted small m-0">Centro de Comando Gerencial</p>
+        </div>
+
+        <form method="GET" class="d-flex gap-2 align-items-center bg-white p-2 rounded shadow-sm border">
+            <label class="small fw-bold text-muted">Periodo:</label>
+            <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ fecha_inicio|default:'' }}">
+            <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ fecha_fin|default:'' }}">
+            
+            <button type="submit" class="btn btn-primary btn-sm" title="Aplicar Filtros">
+                <i class="bi bi-filter"></i>
+            </button>
+
+            {% if fecha_inicio or fecha_fin %}
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-sm" title="Limpiar / Ver Todo">
+                <i class="bi bi-x-circle"></i>
+            </a>
+            {% endif %}
+            
+            <button type="button" onclick="exportarPDF()" id="btn-export" class="btn btn-outline-danger btn-sm fw-bold ms-2">
+                <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+            </button>
+        </form>
+    </div>
+
+    <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pills-op-tab" data-bs-toggle="pill" data-bs-target="#pills-op" type="button" role="tab">
+                <i class="bi bi-gear-wide-connected me-1"></i> Operativo
+            </button>
+        </li>
+        
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-heatmap-tab" data-bs-toggle="pill" data-bs-target="#pills-heatmap" type="button" role="tab" onclick="renderHeatmap()">
+                <i class="bi bi-grid-3x3-gap-fill me-1"></i> Mapa de Calor
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-bi-tab" data-bs-toggle="pill" data-bs-target="#pills-bi" type="button" role="tab" onclick="renderBI()">
+                <i class="bi bi-graph-up-arrow me-1"></i> Inteligencia (BI)
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-flota-tab" data-bs-toggle="pill" data-bs-target="#pills-flota" type="button" role="tab">
+                <i class="bi bi-truck-front-fill me-1"></i> Gestión de Flota
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-hr-tab" data-bs-toggle="pill" data-bs-target="#pills-hr" type="button" role="tab">
+                <i class="bi bi-people-fill me-1"></i> RR.HH.
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="dashboardTabContent">
+
+        <div class="tab-pane fade show active" id="pills-op" role="tabpanel">
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="card-kpi p-3 d-flex flex-row align-items-center border-start border-5 border-warning">
+                        <div class="kpi-icon kpi-orange"><i class="bi bi-clock-history"></i></div>
+                        <div class="kpi-content"><h3>{{ pendientes|default:"0" }}</h3><p>OTs Pendientes</p></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-kpi p-3 d-flex flex-row align-items-center border-start border-5 border-success">
+                        <div class="kpi-icon kpi-green"><i class="bi bi-check-circle"></i></div>
+                        <div class="kpi-content"><h3>{{ completadas|default:"0" }}</h3><p>OTs Completadas</p></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-kpi p-3 d-flex flex-row align-items-center border-start border-5 border-danger">
+                        <div class="kpi-icon kpi-red"><i class="bi bi-tools"></i></div>
+                        <div class="kpi-content"><h3>{{ en_mantenimiento|default:"0" }}</h3><p>En Mantenimiento</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="chart-card">
+                        <div class="chart-title">Top Trabajadores (Más Asignaciones)</div>
+                        <canvas id="chartTrabajadores"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-card">
+                        <div class="chart-title">Uso de Maquinaria</div>
+                        <canvas id="chartMaquinas"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="chart-card p-0 overflow-hidden">
+                        <div class="p-3 border-bottom bg-light fw-bold text-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Alertas Recientes
+                        </div>
+                        <ul class="list-group list-group-flush small">
+                            {% for alerta in alertas_recientes %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                    <span><strong>{{ alerta.maquina.equipo }}</strong>: {{ alerta.mensaje }}</span>
+                                    <span class="text-muted">{{ alerta.fecha|date:"d/m H:i" }}</span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item text-center py-4 text-muted">No hay alertas recientes.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-card">
+                        <div class="chart-title">Estado de Asignaciones</div>
+                        <div style="height: 200px; display: flex; justify-content: center;">
+                            <canvas id="chartEstado"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-strategy" role="tabpanel">
+            <div class="chart-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary m-0">Análisis de Rendimiento por Marca</h5>
+                    <div id="drilldown-nav" class="d-none">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="resetStrategy()">
+                            <i class="bi bi-arrow-left"></i> Volver a General
+                        </button>
+                    </div>
+                </div>
+                
+                <p class="text-muted small" id="strategy-hint">
+                    <i class="bi bi-info-circle"></i> Haga clic en una sección del gráfico para ver el detalle de las máquinas.
+                </p>
+                
+                <div id="strategyChart" style="min-height: 500px;"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-heatmap" role="tabpanel">
+            <div class="chart-card">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                    <h5 class="fw-bold text-primary m-0">Saturación de Flota (Días)</h5>
+                    <div class="small">
+                        <span class="badge bg-light text-dark border me-1">Gris: Libre</span>
+                        <span class="badge bg-warning text-dark me-1">Naranja: Histórico</span>
+                        <span class="badge bg-danger">Rojo: Ocupado</span>
+                    </div>
+                </div>
+                <div id="heatmapChart" style="min-height: 500px;"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-bi" role="tabpanel">
+            {% if recomendaciones %}
+            <div class="alert alert-warning shadow-sm mb-4 border-start border-5 border-warning">
+                <strong><i class="bi bi-lightbulb-fill"></i> Recomendaciones de IA (Gerencia):</strong>
+                <ul class="mb-0 mt-1">
+                    {% for rec in recomendaciones %}<li>{{ rec }}</li>{% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="chart-card">
+                        <div class="chart-title text-primary">Previsión de Demanda (Forecast)</div>
+                        <div id="forecastChart"></div>
+                        <p class="text-center small text-muted fst-italic mt-2 bg-light p-2 rounded">{{ mensaje_prevision }}</p>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="chart-card">
+                        <div class="chart-title text-success">Saturación por Tipo (>85% Comprar)</div>
+                        <div id="saturacionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-flota" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="chart-card">
+                        <div class="chart-title">Salud de Flota (Antigüedad)</div>
+                        <canvas id="chartAntiguedad"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-card p-0 overflow-hidden">
+                        <div class="p-3 border-bottom bg-light fw-bold text-danger">
+                            <i class="bi bi-cash-coin me-2"></i> Máquinarias
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            {% for m in maquinas_criticas %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                <div>
+                                    <strong class="d-block text-dark">{{ m.equipo }}</strong>
+                                    <!--<small class="text-muted">Vida Útil Restante: <span class="text-{{ m.color }} fw-bold">{{ m.restante }}</span></small>-->
+                                </div>
+                                <!--<span class="badge bg-danger rounded-pill p-2">S/. {{ m.costo_mantenimiento }}</span>-->
+                            </li>
+                            {% empty %}
+                            <li class="list-group-item text-center text-muted py-4">No hay datos de costos registrados.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="chart-card">
+                        <div class="chart-title">Vida Útil Estimada por Equipo</div>
+                        <div class="row g-3">
+                            {% for item in lista_vida_util %}
+                            <div class="col-md-4 col-sm-6">
+                                <div class="border rounded p-3 bg-light">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold small text-dark">{{ item.equipo }}</span>
+                                        <span class="small fw-bold text-{{ item.color }}">{{ item.restante }}%</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-{{ item.color }}" role="progressbar" style="width: {{ item.restante }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-hr" role="tabpanel">
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card-kpi p-4 text-center bg-primary text-white" style="border:none;">
+                        <h6 class="text-uppercase opacity-75 mb-2">Tasa de Rotación</h6>
+                        <h1 class="display-4 fw-bold mb-0">{{ tasa_rotacion }}%</h1>
+                        <small class="opacity-75">Mes Actual</small>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div class="chart-card">
+                        <div class="chart-title">Evolución de Contrataciones (Últimos 6 meses)</div>
+                        <div style="height: 200px; width: 100%;">
+                            <canvas id="chartContrataciones"></canvas>
+                        </div>
+                        {% if not contrataciones %}
+                            <p class="text-center text-muted small mt-2">
+                                <i class="bi bi-info-circle"></i> No hay registros de ingresos en el periodo seleccionado.
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-5">
+                    <div class="chart-card">
+                        <div class="chart-title">Distribución por Cargo</div>
+                        <div style="height: 250px; display: flex; justify-content: center;">
+                            <canvas id="chartCargos"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="chart-card p-0 overflow-hidden">
+                        <div class="p-3 border-bottom bg-light fw-bold">
+                            <i class="bi bi-trophy-fill text-warning me-2"></i> Top Productividad
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-dashboard table-hover mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">Nombre</th>
+                                        <th>Cargo</th>
+                                        <th class="text-center">OTs Completadas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in top_trabajadores %}
+                                    <tr>
+                                        <td class="ps-4 fw-bold text-dark">{{ t.first_name }} {{ t.apellido_pat }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ t.ocupacion }}</span></td>
+                                        <td class="text-center"><span class="badge bg-success rounded-pill">{{ t.total_asig }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div> </div>
+
+<div class="modal fade" id="detalleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitulo">Detalle de Asignación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleContenido">
+                <div class="text-center py-3"><div class="spinner-border text-primary"></div></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+    // --- 1. GRÁFICOS ORIGINALES (Chart.js) ---
+    
+    // Gráfico de Trabajadores
+    const ctxTrab = document.getElementById('chartTrabajadores');
+    if (ctxTrab) {
+        new Chart(ctxTrab, {
+            type: 'bar',
+            data: {
+                labels: [{% for t in top_trabajadores %}'{{ t.first_name }}',{% endfor %}],
+                datasets: [{ label: 'Asignaciones', data: [{% for t in top_trabajadores %}{{ t.total_asig }},{% endfor %}], backgroundColor: '#36A2EB', borderRadius: 4 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // Gráfico de Máquinas
+    const ctxMaq = document.getElementById('chartMaquinas');
+    if (ctxMaq) {
+        new Chart(ctxMaq, {
+            type: 'bar',
+            data: {
+                labels: [{% for m in top_maquinas %}'{{ m.equipo }}',{% endfor %}],
+                datasets: [{ label: 'Usos', data: [{% for m in top_maquinas %}{{ m.total_asig }},{% endfor %}], backgroundColor: '#FF6384', borderRadius: 4 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // Gráfico de Estado
+    const ctxEst = document.getElementById('chartEstado');
+    if (ctxEst) {
+        new Chart(ctxEst, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for e in estado_asig %}'{{ e.id_status__nombre }}',{% endfor %}],
+                datasets: [{ data: [{% for e in estado_asig %}{{ e.total }},{% endfor %}], backgroundColor: ['#4BC0C0','#FFCE56','#FF6384'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // Gráfico de Cargos (Solo si existe la variable)
+    {% if distribucion_cargos %}
+    const ctxCar = document.getElementById('chartCargos');
+    if (ctxCar) {
+        new Chart(ctxCar, {
+            type: 'pie',
+            data: {
+                labels: [{% for c in distribucion_cargos %}'{{ c.id_privilegio__privilegio }}',{% endfor %}],
+                datasets: [{ data: [{% for c in distribucion_cargos %}{{ c.total }},{% endfor %}], backgroundColor: ['#36A2EB','#FF6384','#FFCE56', '#4BC0C0'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+    {% endif %}
+
+    // === GRÁFICO CONTRATACIONES (RRHH) ===
+    const ctxCon = document.getElementById('chartContrataciones');
+    if (ctxCon) {
+        const labelsCon = [{% for c in contrataciones %}'{{ c.mes|date:"M Y" }}',{% endfor %}];
+        const dataCon = [{% for c in contrataciones %}{{ c.total }},{% endfor %}];
+        
+        // Datos de relleno si está vacío
+        const finalLabels = labelsCon.length > 0 ? labelsCon : ['Mes 1', 'Mes 2', 'Mes 3', 'Mes 4', 'Mes 5', 'Actual'];
+        const finalData = dataCon.length > 0 ? dataCon : [0, 0, 0, 0, 0, 0];
+
+        new Chart(ctxCon, {
+            type: 'line',
+            data: {
+                labels: finalLabels,
+                datasets: [{ 
+                    label: 'Ingresos', 
+                    data: finalData, 
+                    borderColor: '#4BC0C0', 
+                    tension: 0.4, 
+                    fill: true, 
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    pointRadius: 5
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    }
+
+    // Gráfico de Antigüedad (Solo si existe la variable)
+    {% if antiguedad %}
+    const ctxAnt = document.getElementById('chartAntiguedad');
+    if (ctxAnt) {
+        new Chart(ctxAnt, {
+            type: 'bar',
+            data: {
+                labels: ['< 2 años (Nuevas)', '2 - 5 años (Media)', '> 5 años (Antiguas)'],
+                datasets: [{ label: 'Cantidad', data: [{{ antiguedad.menos_2 }}, {{ antiguedad.entre_2_5 }}, {{ antiguedad.mas_5 }}], backgroundColor: ['#4BC0C0', '#FFCE56', '#FF6384'], borderRadius: 5 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+    {% endif %}
+
+    // --- 2. PRECARGA DE DATOS ---
+    var heatmapData = [];
+    try { heatmapData = JSON.parse('{{ heatmap_data|escapejs }}'); } catch(e) {}
+    
+    var strategyData = {resumen:{labels:[],series:[]}, detalle:{}};
+    try { strategyData = JSON.parse('{{ strategy_data|escapejs }}'); } catch(e) {}
+
+    var heatmapRendered = false;
+    var biRendered = false;
+    var strategyChart = null;
+
+    // --- 3. FUNCIONES DE ESTRATEGIA, HEATMAP Y BI ---
+    function renderStrategy() {
+        if (strategyChart) return;
+        if (strategyData.resumen.series.length === 0) {
+            const el = document.getElementById('strategyChart');
+            if(el) el.innerHTML = '<div class="text-center py-5 text-muted">No hay datos.</div>';
+            return;
+        }
+        drawStratChart(strategyData.resumen.labels, strategyData.resumen.series, 'pie');
+    }
+
+    function drawStratChart(labels, series, type) {
+        if (strategyChart) strategyChart.destroy();
+        var options = {
+            series: type==='bar' ? [{data: series}] : series,
+            chart: {
+                height: 450, type: type,
+                events: {
+                    dataPointSelection: function(event, chartContext, config) {
+                        if (type === 'pie') {
+                            var marca = config.w.config.labels[config.dataPointIndex];
+                            if (strategyData.detalle[marca]) {
+                                mostrarNavegacion(marca);
+                                drawStratChart(strategyData.detalle[marca].labels, strategyData.detalle[marca].series, 'bar');
+                            } else { alert("Sin detalle: " + marca); }
+                        }
+                    }
+                }
+            },
+            labels: labels,
+            title: { text: type==='pie' ? 'Participación por Marca' : 'Detalle por Máquina', align: 'center' },
+            colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+            plotOptions: { bar: { borderRadius: 4, horizontal: true }, pie: { donut: { size: '45%' } } },
+            dataLabels: { enabled: true }
+        };
+        if (type === 'bar') { options.xaxis = { categories: labels }; delete options.labels; }
+        strategyChart = new ApexCharts(document.querySelector("#strategyChart"), options);
+        strategyChart.render();
+    }
+
+    function mostrarNavegacion(marca) {
+        const nav = document.getElementById('drilldown-nav');
+        const hint = document.getElementById('strategy-hint');
+        if(nav) nav.classList.remove('d-none');
+        if(hint) hint.classList.add('d-none');
+    }
+
+    function resetStrategy() {
+        const nav = document.getElementById('drilldown-nav');
+        const hint = document.getElementById('strategy-hint');
+        if(nav) nav.classList.add('d-none');
+        if(hint) hint.classList.remove('d-none');
+        drawStratChart(strategyData.resumen.labels, strategyData.resumen.series, 'pie');
+    }
+
+    function renderHeatmap() {
+        if (heatmapRendered) return;
+        var options = {
+            series: heatmapData,
+            chart: {
+                height: 600, type: 'heatmap', fontFamily: 'sans-serif',
+                events: {
+                    dataPointSelection: function(event, chartContext, config) {
+                        var seriesIndex = config.seriesIndex;
+                        var dataPointIndex = config.dataPointIndex;
+                        var maquina = config.w.config.series[seriesIndex].name;
+                        var data = config.w.config.series[seriesIndex].data[dataPointIndex];
+                        if(data.y > 0) abrirDetalle(maquina, data.x);
+                    }
+                }
+            },
+            plotOptions: {
+                heatmap: {
+                    shadeIntensity: 0.5, radius: 2,
+                    colorScale: {
+                        ranges: [
+                            { from: 0, to: 0, color: '#E0E0E0', name: 'Libre' },
+                            { from: 1, to: 60, color: '#FFB74D', name: 'Histórico' },
+                            { from: 61, to: 100, color: '#D32F2F', name: 'Ocupado' }
+                        ]
+                    }
+                }
+            },
+            dataLabels: { enabled: false }
+        };
+        new ApexCharts(document.querySelector("#heatmapChart"), options).render();
+        heatmapRendered = true;
+    }
+
+    function renderBI() {
+        if (biRendered) return;
+        var chartLabels = [];
+        var chartData = [];
+        var pieLabels = [];
+        var pieData = [];
+        
+        try {
+            chartLabels = JSON.parse('{{ chart_labels|escapejs }}');
+            chartData = JSON.parse('{{ chart_data|escapejs }}');
+            pieLabels = JSON.parse('{{ pie_labels|escapejs }}');
+            pieData = JSON.parse('{{ pie_data|escapejs }}');
+        } catch(e) {}
+
+        var realData = chartData.slice(0, chartData.length - 1);
+        var projData = Array(realData.length - 1).fill(null);
+        if (realData.length > 0) {
+             projData.push(realData[realData.length - 1]);
+             projData.push(chartData[chartData.length - 1]);
+        } else if (chartData.length > 0) {
+             projData = chartData;
+        }
+
+        var optionsForecast = {
+            series: [
+                { name: "Histórico", data: realData.concat([null]) },
+                { name: "Proyección", data: projData }
+            ],
+            chart: { height: 350, type: 'line', zoom: { enabled: false } },
+            dataLabels: { enabled: false },
+            stroke: { width: [3, 3], curve: 'smooth', dashArray: [0, 5] },
+            xaxis: { categories: chartLabels },
+            colors: ['#4e73df', '#1cc88a'],
+            legend: { position: 'top' }
+        };
+        new ApexCharts(document.querySelector("#forecastChart"), optionsForecast).render();
+
+        var optionsSat = {
+            series: [{ name: 'Saturación %', data: pieData }],
+            chart: { height: 350, type: 'bar' },
+            plotOptions: { bar: { borderRadius: 4, horizontal: true } },
+            dataLabels: { enabled: true },
+            xaxis: { categories: pieLabels, max: 100 },
+            colors: [function({ value }) {
+                if(value > 85) return '#e74a3b';
+                if(value > 60) return '#f6c23e';
+                return '#1cc88a';
+            }]
+        };
+        new ApexCharts(document.querySelector("#saturacionChart"), optionsSat).render();
+        biRendered = true;
+    }
+
+    // --- 4. UTILS ---
+    function abrirDetalle(maquina, fecha) {
+        var modal = new bootstrap.Modal(document.getElementById('detalleModal'));
+        modal.show();
+        document.getElementById('modalTitulo').innerText = `${maquina} (${fecha})`;
+        const content = document.getElementById('detalleContenido');
+        content.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
+
+        fetch(`/reportes/api/detalles-uso/?maquina=${encodeURIComponent(maquina)}&fecha=${fecha}`)
+            .then(response => response.json())
+            .then(data => {
+                let html = '';
+                if (data.ots && data.ots.length > 0) {
+                    data.ots.forEach(ot => {
+                        html += `
+                            <div class="card mb-2 border-start border-primary border-4 shadow-sm p-2">
+                                <strong>OT #${ot.id}</strong> (${ot.estado})<br>
+                                <small class="text-muted">${ot.trabajador}</small><br>
+                                <small class="fst-italic">"${ot.descripcion}"</small>
+                            </div>`;
+                    });
+                } else {
+                    html = '<p class="text-center text-muted">No se encontraron detalles.</p>';
+                }
+                content.innerHTML = html;
+            })
+            .catch(err => {
+                content.innerHTML = '<p class="text-danger">Error de conexión.</p>';
+            });
+    }
+
+    async function exportarPDF() {
+        const { jsPDF } = window.jspdf;
+        const btn = document.getElementById('btn-export');
+        const activeTabContent = document.querySelector('.tab-pane.active'); 
+        
+        btn.disabled = true; 
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const canvas = await html2canvas(activeTabContent, { scale: 2, backgroundColor: '#ffffff' });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('l', 'mm', 'a4'); 
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+            pdf.save('Reporte_Dashboard.pdf');
+        } catch (err) {
+            alert("Error al generar PDF");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-file-earmark-pdf-fill"></i> PDF';
+        }
+    }
+</script>
+
+{% endblock %}

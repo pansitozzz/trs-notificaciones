@@ -1,0 +1,71 @@
+{% extends 'webApp/base.html' %} {% load static %}
+{% block title %}Historial de sesiones{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 mt-5">
+    <h2 class="mb-4 text-center text-primary fw-bold">Historial de Inicio de Sesión</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-filter me-1"></i>
+            Filtrar por Rango de Fechas
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{% url 'historial_logins' %}">
+                <div class="row">
+                    <div class="col-md-5">
+                        <label for="fecha_inicio" class="form-label">Desde:</label>
+                        <input type="date" class="form-control" 
+                               id="fecha_inicio" name="fecha_inicio" 
+                               value="{{ fecha_inicio|default:'' }}">
+                    </div>
+                    <div class="col-md-5">
+                        <label for="fecha_fin" class="form-label">Hasta:</label>
+                        <input type="date" class="form-control" 
+                               id="fecha_fin" name="fecha_fin" 
+                               value="{{ fecha_fin|default:'' }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-2">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            Resultados
+        </div>
+        <div class="card-body">
+            <table id="datatablesSimple" class="table table-striped text-center align-middle">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Fecha y Hora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for login in historial %}
+                    <tr>
+                        <td>
+                            {% if login.trabajador %}
+                                {{ login.trabajador.first_name }} {{ login.trabajador.apellido_pat }}
+                            {% else %}
+                                <span class="text-danger">Usuario Eliminado</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ login.timestamp }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No hay registros en este rango de fechas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

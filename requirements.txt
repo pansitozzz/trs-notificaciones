@@ -1,0 +1,8 @@
+asgiref==3.9.1
+cloudinary==1.41.0
+django-cloudinary-storage==0.3.0
+Django==4.2.13
+mysqlclient==2.2.7
+python-decouple==3.8
+sqlparse==0.5.3
+tzdata==2025.2

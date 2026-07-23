@@ -1,0 +1,35 @@
+{% extends "webApp/base_pe.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-header text-center bg-primary text-white">
+                <h4>Iniciar Sesión</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'login_pe' %}">
+                  {% csrf_token %}
+                  <div class="form-group mb-3">
+                    <label for="username">Nombre de usuario</label>
+                    <input type="text" name="username" class="form-control" placeholder="Nombre completo o nombre de empresa" required>
+                  </div>
+                
+                  <div class="form-group mb-3">
+                    <label for="password">Contraseña</label>
+                    <input type="password" name="password" class="form-control" required>
+                  </div>
+                
+                  {% if error %}
+                  <div class="alert alert-danger text-center">{{ error }}</div>
+                  {% endif %}
+                
+                  <button type="submit" class="btn btn-primary w-100">Iniciar sesión</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Egresados | UNTELS</title>
+    
+    <style>
+        :root {
+            --primary: 217 91% 40%;
+            --primary-foreground: 0 0% 100%;
+            --background: 210 20% 98%;
+            --foreground: 222 47% 11%;
+            --card: 0 0% 100%;
+            --border: 214 32% 85%;
+            --input: 214 32% 91%;
+            --muted: 210 20% 94%; 
+            --muted-foreground: 215 16% 47%;
+            --success: 152 69% 31%; 
+            --warning: 38 92% 50%;
+            --error: 0 84% 60%;
+            --gradient-header: linear-gradient(135deg, hsl(217, 91%, 25%) 0%, hsl(217, 91%, 40%) 100%);
+            --shadow-lg: 0 10px 15px -3px hsla(217, 91%, 11%, 0.1), 0 4px 6px -4px hsla(217, 91%, 11%, 0.1);
+            --radius: .625rem;
+        }
+
+        body { font-family: ui-sans-serif, system-ui, sans-serif; background-color: hsl(var(--background)); margin: 0; padding: 0; line-height: 1.5; color: hsl(var(--foreground)); }
+        .min-h-screen { min-height: 100vh; }
+        .container { max-width: 1200px; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }
+        .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+        .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+        
+        .gradient-header { background: var(--gradient-header); color: hsl(var(--primary-foreground)); }
+        .shadow-lg { box-shadow: var(--shadow-lg); }
+        .card { border: 1px solid hsl(var(--border)); background-color: hsl(var(--card)); border-radius: var(--radius); box-shadow: 0 4px 20px -2px hsla(217, 91%, 11%, 0.08); }
+        .card-header { padding: 1.5rem; background: var(--gradient-header); border-radius: var(--radius) var(--radius) 0 0; }
+        .card-content { padding: 1.5rem; } 
+        
+        /* Tabs */
+        .tabs-list { display: flex; max-width: 480px; margin: 0 auto 1.5rem; background-color: hsl(var(--muted)); padding: 4px; border-radius: var(--radius); }
+        .tab-trigger { flex-grow: 1; padding: 10px 15px; border-radius: calc(var(--radius) - 2px); font-weight: 500; text-align: center; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.875rem; border: none; background: none; color: hsl(var(--muted-foreground)); }
+        .tab-trigger.active { background-color: hsl(var(--card)); color: hsl(var(--foreground)); box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); }
+        
+        /* Formulario */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-label { font-size: 0.875rem; font-weight: 500; color: hsl(var(--foreground)); }
+        .form-input, .form-select { width: 100%; height: 40px; border: 1px solid hsl(var(--border)); background-color: hsl(var(--card)); border-radius: 6px; padding: 8px 12px; font-size: 0.875rem; box-sizing: border-box; }
+        .btn-primary { background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border: none; padding: 10px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        .btn-primary:hover { background-color: hsl(217, 91%, 35%); }
+
+        /* Alertas (Notificaciones) */
+        .alert { padding: 1rem; margin-bottom: 1.5rem; border-radius: var(--radius); border: 1px solid transparent; font-size: 0.9rem; }
+        .alert.success { background-color: hsl(152, 69%, 95%); color: hsl(152, 69%, 20%); border-color: hsl(152, 69%, 80%); }
+        .alert.error { background-color: hsl(0, 84%, 95%); color: hsl(0, 84%, 20%); border-color: hsl(0, 84%, 80%); }
+        .alert.warning { background-color: hsl(38, 92%, 95%); color: hsl(38, 92%, 20%); border-color: hsl(38, 92%, 80%); }
+        .alert.info { background-color: hsl(210, 20%, 95%); color: hsl(210, 20%, 20%); border-color: hsl(210, 20%, 80%); }
+
+        /* Iconos */
+        .table-icon { width: 16px; height: 16px; margin-right: 4px; vertical-align: middle; }
+
+        /* --- ESTILOS EXTRA PARA EL LOGIN OVERLAY --- */
+        .login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 71, 161, 0.95); /* Fondo Azul Corporativo */
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .login-box {
+            background: white; padding: 2.5rem; border-radius: 12px; width: 100%; max-width: 400px;
+            text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+
+    <script>
+        // Lógica de Tabs
+        document.addEventListener('DOMContentLoaded', () => {
+            // Solo activar tabs si el usuario está logueado y existe el contenido
+            const tabs = document.querySelectorAll('.tab-trigger');
+            if (tabs.length > 0) {
+                const contents = {
+                    'Registro': document.getElementById('registro-content'),
+                    'Egresados': document.getElementById('egresados-content'),
+                    'Encuesta': document.getElementById('encuesta-content')
+                };
+
+                const switchTab = (tabName) => {
+                    tabs.forEach(tab => tab.classList.remove('active'));
+                    Object.values(contents).forEach(content => { if(content) content.style.display = 'none'; });
+                    
+                    const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+                    if (activeTab && contents[tabName]) {
+                        activeTab.classList.add('active');
+                        contents[tabName].style.display = 'block';
+                    }
+                };
+
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        switchTab(tab.getAttribute('data-tab'));
+                    });
+                });
+
+                switchTab('Registro');
+            }
+        });
+    </script>
+</head>
+
+<body>
+    
+    {% if not user.is_authenticated %}
+    <div class="login-overlay">
+        <div class="login-box">
+            <div style="padding: 12px; background-color: hsla(217, 91%, 40%, 0.1); border-radius: 50%; width: 50px; height: 50px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
+                <svg style="width: 30px; height: 30px; color: hsl(217, 91%, 40%);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h2 style="color: hsl(222, 47%, 11%); font-weight: 700; margin-bottom: 0.5rem;">Acceso Restringido</h2>
+            <p style="color: hsl(215, 16%, 47%); font-size: 0.9rem; margin-bottom: 2rem;">Ingrese sus credenciales para gestionar el sistema.</p>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {{ message.tags }}" style="text-align: left; padding: 0.75rem; margin-bottom: 1rem;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="btn_login" value="1">
+                
+                <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
+                    <label class="form-label">Usuario</label>
+                    <input type="text" name="login_user" class="form-input" placeholder="admin" required>
+                </div>
+                <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" name="login_pass" class="form-input" placeholder="••••••" required>
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%;">Ingresar al Sistema</button>
+            </form>
+            <p style="margin-top: 1rem; font-size: 0.8rem; color: #888;">Credenciales por defecto: admin / 12345</p>
+        </div>
+    </div>
+    {% endif %}
+
+
+    {% if user.is_authenticated %}
+    <div class="min-h-screen">
+        <header class="gradient-header shadow-lg">
+            <div class="container py-6">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="padding: 12px; background-color: hsla(var(--primary-foreground), 0.2); border-radius: 12px;">
+                            <svg style="width: 32px; height: 32px; color: hsl(var(--primary-foreground));" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path><path d="M22 10v6"></path><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path></svg>
+                        </div>
+                        <div>
+                            <h1 style="font-size: 1.875rem; font-weight: bold; color: hsl(var(--primary-foreground));">Gestión de Egresados</h1>
+                            <p style="color: hsla(var(--primary-foreground), 0.8); font-size: 0.875rem;">Bienvenido, <strong>{{ user.username }}</strong></p>
+                        </div>
+                    </div>
+                    <a href="{% url 'logout' %}" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px;">
+                        <svg class="table-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="container py-8">
+            
+            {% if messages %}
+                <div style="max-width: 800px; margin: 0 auto;">
+                    {% for message in messages %}
+                        <div class="alert {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="tabs-list">
+                <button class="tab-trigger active" data-tab="Registro">
+                    <svg class="table-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" x2="19" y1="8" y2="14"></line><line x1="22" x2="16" y1="11" y2="11"></line></svg>
+                    <span>Registro</span>
+                </button>
+                <button class="tab-trigger" data-tab="Egresados">
+                    <svg class="table-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Egresados</span>
+                </button>
+            </div>
+
+            <div id="registro-content" style="margin-top: 1rem; display: block;">
+                <div class="card" style="max-width: 800px; margin: 0 auto;">
+                    <div class="card-header" style="padding: 1rem 1.5rem;">
+                        <h3 style="font-weight: 600; color: hsl(var(--primary-foreground)); font-size: 1.25rem;">Registro de Egresado</h3>
+                        <p style="font-size: 0.875rem; color: hsla(var(--primary-foreground), 0.8);">Complete su información para actualizar la base de datos.</p>
+                    </div>
+                    
+                    <div class="card-content">
+                        <form method="POST" class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            {% csrf_token %}
+                            <input type="hidden" name="btn_registro" value="1">
+
+                            <div class="form-group" style="grid-column: span 2;">
+                                <h4 style="color: hsl(var(--primary)); border-bottom: 1px solid #eee; margin-bottom: 5px;">Datos Personales</h4>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Código de Alumno *</label>
+                                <input type="text" name="codigo_alumno" class="form-input" placeholder="Ej: 201910045" value="{{ form.codigo_alumno.value|default:'' }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Teléfono</label>
+                                <input type="tel" name="telefono" class="form-input" placeholder="Ej: 999 888 777" value="{{ form.telefono.value|default:'' }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Nombres *</label>
+                                <input type="text" name="nombres" class="form-input" placeholder="Juan Carlos" value="{{ form.nombres.value|default:'' }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Apellidos *</label>
+                                <input type="text" name="apellidos" class="form-input" placeholder="Pérez García" value="{{ form.apellidos.value|default:'' }}" required>
+                            </div>
+                            
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label class="form-label">Email Institucional/Personal *</label>
+                                <input type="email" name="email" class="form-input" placeholder="ejemplo@email.com" value="{{ form.email.value|default:'' }}" required>
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 2;">
+                                <h4 style="color: hsl(var(--primary)); border-bottom: 1px solid #eee; margin-bottom: 5px;">Información Académica y Laboral</h4>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Carrera *</label>
+                                <input type="text" name="carrera" class="form-input" placeholder="Ej: Ing. de Sistemas" value="{{ form.carrera.value|default:'' }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Año de Egreso *</label>
+                                <input type="number" name="anio_egreso" class="form-input" placeholder="2024" value="{{ form.anio_egreso.value|default:'' }}" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Empresa Actual</label>
+                                <input type="text" name="empresa_actual" class="form-input" placeholder="Nombre de la empresa" value="{{ form.empresa_actual.value|default:'' }}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Cargo</label>
+                                <input type="text" name="cargo" class="form-input" placeholder="Ej: Desarrollador Jr" value="{{ form.cargo.value|default:'' }}">
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label class="form-label">URL de LinkedIn</label>
+                                <input type="url" name="linkedin_url" class="form-input" placeholder="https://linkedin.com/in/tu-perfil" value="{{ form.linkedin_url.value|default:'' }}">
+                            </div>
+
+                            <div style="grid-column: span 2; margin-top: 1rem;">
+                                <button type="submit" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <svg class="table-icon" style="color: hsl(var(--primary-foreground));" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                                    Guardar y Registrar Egresado
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="egresados-content" style="margin-top: 1rem; display: none;">
+                <div class="card">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem;">
+                        <h3 style="font-weight: 600; color: hsl(var(--primary-foreground)); font-size: 1.25rem;">Lista de Egresados</h3>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 10px; font-size: 0.8rem; color: white;">
+                            Total: {{ egresados|length }}
+                        </span>
+                    </div>
+                    
+                    <div class="card-content">
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #eee; text-align: left; color: #666;">
+                                        <th style="padding: 12px;">Código</th>
+                                        <th style="padding: 12px;">Nombre Completo</th>
+                                        <th style="padding: 12px;">Carrera</th>
+                                        <th style="padding: 12px;">Teléfono</th>
+                                        <th style="padding: 12px;">Empresa</th>
+                                        <th style="padding: 12px;">Email</th>
+                                        <th style="padding: 12px; text-align: center;">Acciones</th> </tr>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for egresado in egresados %}
+                                    <tr style="border-bottom: 1px solid #eee;">
+                                        <td style="padding: 12px; font-weight: bold;">{{ egresado.codigo_alumno }}</td>
+                                        <td style="padding: 12px;">{{ egresado.nombres }} {{ egresado.apellidos }}</td>
+                                        <td style="padding: 12px;">
+                                            <span style="background: #e3f2fd; color: #0d47a1; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+                                                {{ egresado.carrera }}
+                                            </span>
+                                        </td>
+                                        <td style="padding: 12px;">{{ egresado.telefono|default:"-" }}</td>
+                                        <td style="padding: 12px;">{{ egresado.empresa_actual|default:"Sin datos" }}</td>
+                                        <td style="padding: 12px; color: #666;">{{ egresado.correo }}</td>
+                                        <td style="padding: 12px; text-align: center; white-space: nowrap;">
+                                            <a href="{% url 'editar_egresado' egresado.id %}" title="Editar" style="color: #f59e0b; text-decoration: none; margin-right: 10px;">
+                                                <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                            </a>
+                                        
+                                            {% if egresado.encuesta %}
+                                                <span title="Encuesta Completada" style="color: #ccc; cursor: not-allowed;">
+                                                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                </span>
+                                            {% else %}
+                                                <a href="{% url 'realizar_encuesta' egresado.id %}" title="Realizar Encuesta" style="color: #0d47a1; text-decoration: none;">
+                                                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 2rem; color: #999;">
+                                            No hay egresados registrados todavía.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="encuesta-content" style="margin-top: 1rem; display: none;">
+                 <div class="card">
+                     <div class="card-content">
+                        <p style="text-align: center; color: #666;">Módulo de encuestas disponible próximamente.</p>
+                     </div>
+                </div>
+            </div>
+
+        </main>
+        
+        <footer style="border-top: 1px solid hsl(var(--border)); margin-top: 3rem; padding: 1.5rem; text-align: center; color: hsl(var(--muted-foreground)); font-size: 0.875rem;">
+            <p>Sistema de Gestión de Egresados © 2025 - UNTELS</p>
+        </footer>
+    </div>
+    {% endif %}
+</body>
+</html>

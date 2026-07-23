@@ -1,0 +1,12 @@
+{% if notificaciones %}
+<div class="list-group">
+    {% for n in notificaciones %}
+        <a href="{{ n.url }}" class="list-group-item list-group-item-action">
+            <strong>{{ n.tipo|title }}:</strong> {{ n.mensaje }}<br>
+            <small class="text-muted">{{ n.fecha|date:"d/m/Y H:i" }}</small>
+        </a>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-center text-muted">No hay notificaciones disponibles.</p>
+{% endif %}

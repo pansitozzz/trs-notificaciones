@@ -1,0 +1,28 @@
+{% extends "webApp/base_pe.html" %}
+{% block title %}Portal de Empleabilidad{% endblock %}
+
+{% block content %}
+<h3 class="text-center mb-4">Ofertas disponibles</h3>
+
+{% if ofertas %}
+<div class="row">
+    {% for oferta in ofertas %}
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">{{ oferta.puesto }}</h5>
+                <p class="card-text">{{ oferta.descripcion|truncatechars:100 }}</p>
+                <p><strong>Empresa:</strong> {{ oferta.id_empresa.nombre_emp }}</p>
+                <p><strong>Modalidad:</strong> {{ oferta.modalidad }}</p>
+                <p><strong>Tipo de contrato:</strong> {{ oferta.tipo_contrato }}</p>
+                <p><strong>Estado:</strong> {{ oferta.estado }}</p>
+                <small class="text-muted">Publicado el {{ oferta.fecha_publicacion|date:"j \\d\\e F \\d\\e Y" }}</small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-center text-muted">No hay ofertas publicadas todavía.</p>
+{% endif %}
+{% endblock %}

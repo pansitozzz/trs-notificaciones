@@ -1,0 +1,180 @@
+{% extends "webApp/base.html" %}
+{% load static %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="home-container">
+    <!-- Bienvenida centrada -->
+    <div class="welcome-box">
+        <h1 class="welcome-title">
+            Bienvenido, {{ usuario.first_name }} {{ usuario.apellido_pat }} {{ usuario.apellido_mat }}
+        </h1>
+        <span class="role-badge">{{ rol }}</span>
+    </div>
+
+    <!-- Cards centradas -->
+    <div class="cards-section">
+        
+        {% if rol.id_privilegio == 1 or rol.id_privilegio == 2 %}
+        <a href="{% url 'maquinaria_list' %}" class="card">
+            <div class="icon">🚜</div>
+            <h3>Gestión de Maquinaria</h3>
+            <p>Administra el estado, mantenimiento y disponibilidad de maquinaria.</p>
+        </a>
+        {% endif %}
+        
+        {% if rol.id_privilegio == 1 or rol.id_privilegio == 2 %}
+        <a href="{% url 'listar_trabajadores' %}" class="card">
+            <div class="icon">👷‍♂️</div>
+            <h3>Gestión de Trabajadores</h3>
+            <p>Consulta y gestiona a los trabajadores.</p>
+        </a>
+        {% endif %}
+        
+        <a href="{% url 'listar_asignaciones' %}" class="card">
+            <div class="icon">📚</div>
+            <h3>Gestión de Asignaciones</h3>
+            <p>Revisa las tareas pendientes, completadas y nuevas asignaciones.</p>
+        </a>
+
+        {% if rol.id_privilegio == 1 %}
+        <a href="{% url 'dashboard' %}" class="card">
+            <div class="icon">📊</div>
+            <h3>Dashboard</h3>
+            <p>Visualiza métricas clave y reportes generales.</p>
+        </a>
+        {% endif %}
+
+        <a href="{% url 'capacitaciones' %}" class="card">
+            <div class="icon">🎓</div>
+            <h3>Capacitaciones</h3>
+            <p>Accede al listado de capacitaciones y gestiona su información.</p>
+        </a>
+
+        <!--{% if rol.id_privilegio == 1 %}-->
+        <!--<a href="{% url 'historial_logins' %}" class="card">-->
+        <!--    <div class="icon">🧾</div>-->
+        <!--    <h3>Historial de Sesiones</h3>-->
+        <!--    <p>Visualiza las sesiones de los trabajadores.</p>-->
+        <!--</a>-->
+        <!--{% endif %}-->
+    </div>
+</div>
+
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background-color: #f7f9fc;
+    overflow: hidden; /* evita scroll externo */
+}
+
+/* Contenedor principal */  
+.home-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+}
+
+/* Bienvenida */
+.welcome-box {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.welcome-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.role-badge {
+    display: inline-block;
+    background-color: #e74c3c;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 3px 6px rgba(231,76,60,0.3);
+}
+
+/* Cards */
+.cards-section {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 25px;
+}
+
+.card {
+    background-color: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    text-decoration: none;
+    color: #2c3e50;
+    width: 240px;
+    height: 280px;
+    padding: 25px 20px;
+    transition: all 0.3s ease;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.icon {
+    font-size: 2.4rem;
+    margin-bottom: 10px;
+}
+
+.card h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.card p {
+    font-size: 0.95rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const alerta = document.getElementById('alertaMantenimiento');
+    const toggleBtn = document.getElementById('toggleAlert');
+    const showBtn = document.getElementById('showAlertBtn');
+
+    if(toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            alerta.style.display = 'none';
+            showBtn.style.display = 'flex'; // mostrar campanita
+        });
+    }
+
+    if(showBtn) {
+        showBtn.addEventListener('click', () => {
+            alerta.style.display = 'block';
+            showBtn.style.display = 'none';
+        });
+    }
+});
+</script>
+
+{% endblock %}

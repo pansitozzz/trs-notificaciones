@@ -1,0 +1,655 @@
+{% extends "webApp/base.html" %}
+{% block title %}Gestión de Maquinaria{% endblock %}
+{% block content %}
+{% load static %}
+
+<style>
+/*   ===== BADGES ===== */
+  .badge {
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    border-radius: 8px;
+    font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .badge.bg-success { background: #16a34a !important; }
+  .badge.bg-warning { background: #facc15 !important; color: #1f2937 !important; }
+  .badge.bg-danger { background: #dc2626 !important; }
+
+/*   ===== FILTRO (DROPDOWN) ===== */
+  .filter-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .filter-label { font-weight: 700; color: #374151; margin-right: 6px; }
+
+  .filter-btn {
+    background: #fff;
+    border: 1px solid #e6e7ea;
+    color: #111827;
+    padding: 8px 12px;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(15,23,42,0.06);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .filter-btn:hover { box-shadow: 0 6px 24px rgba(15,23,42,0.09); }
+  .filter-btn .selected-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .dropdown-menu {
+    min-width: 220px;
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 8px 30px rgba(2,6,23,0.15);
+  }
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-weight: 600;
+    color: #0f172a;
+    transition: background 0.25s, color 0.25s;
+  }
+  .dropdown-item:hover { background: rgba(15,23,42,0.12); color: #111827; }
+  .dropdown-item .icon {
+    width: 28px; height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+  .filter-item.active {
+    background: rgba(31,41,55,0.2);
+    box-shadow: inset 0 0 0 2px rgba(31,41,55,0.35);
+    color: #111827;
+  }
+  .icon.success { background: rgba(16,185,129,0.15); color: #059669; }
+  .icon.warning { background: rgba(245,158,11,0.15); color: #b45309; }
+  .icon.danger  { background: rgba(220,38,38,0.15); color: #b91c1c; }
+  .icon.gray    { background: rgba(55,65,81,0.15); color: #374151; }
+
+/*   ===== MODALES ===== */
+  .modal-content { border-radius: 14px; border: none; overflow: hidden; box-shadow: 0 10px 40px rgba(2,6,23,0.18); }
+  .modal-header {
+    padding: 18px 22px;
+    border-bottom: none;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header .modal-title {
+    display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.15rem;
+  }
+  .modal-header.bg-info { background: linear-gradient(90deg,#0ea5e9,#0ea5e9); color: #fff; }
+  .modal-header.bg-warning { background: linear-gradient(90deg,#f59e0b,#d97706); color: #111827; }
+
+  .modal-body {
+    padding: 22px 28px;
+    color: #374151;
+  }
+  .modal-body .detail-row {
+    display:flex;
+    justify-content:space-between;
+    gap:18px;
+    padding:10px 0;
+    border-bottom: 1px dashed #eef2f7;
+    align-items:flex-start;
+  }
+  .modal-body .detail-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .modal-body .detail-label { font-weight: 700; color: #111827; width: 40%; }
+  .modal-body .detail-value { width: 60%; color: #0f1724; }
+
+  .modal-footer { padding: 14px 22px; border-top: none; justify-content:center; gap:10px; }
+  .form-control.rounded-3 { border-radius: 10px !important; }
+</style>
+
+
+<div class="container mt-4">
+  <h2 class="mb-4 text-center fw-bold"
+      style="background: linear-gradient(90deg, #198754, #0dcaf0);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;">
+    Gestión de Maquinaria
+  </h2>
+
+  <div class="mb-3 text-end">
+    <button id="btnCrear" class="btn btn-success shadow-sm">
+      <i class="bi bi-plus-circle"></i> Registrar Nueva Maquinaria
+    </button>
+  </div>
+
+  <div class="filter-container">
+    <span class="filter-label">Filtrar por estado:</span>
+
+    <div class="dropdown">
+      <button class="filter-btn dropdown-toggle" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="selected-dot" id="filterDot" style="background:#6b7280;"></span>
+        <span id="filterLabel" style="margin-left:6px; font-weight:700;">Ver Todos</span>
+      </button>
+
+      <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+        <li><a class="dropdown-item filter-item active" href="#" data-filter="all">
+          <span class="icon gray"><i class="bi bi-list-task"></i></span> Ver Todos
+        </a></li>
+        <li><a class="dropdown-item filter-item" href="#" data-filter="DISPONIBLE">
+          <span class="icon success"><i class="bi bi-check-circle-fill"></i></span> Disponible
+        </a></li>
+        <li><a class="dropdown-item filter-item" href="#" data-filter="MANTENIMIENTO">
+          <span class="icon warning"><i class="bi bi-tools"></i></span> Mantenimiento
+        </a></li>
+        <li><a class="dropdown-item filter-item" href="#" data-filter="ORDEN DE TRABAJO">
+          <span class="icon danger"><i class="bi bi-exclamation-triangle-fill"></i></span> Orden De Trabajo
+        </a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover table-bordered align-middle" id="tabla-maquinaria">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>Equipo</th>
+          <th>Modelo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in maquinas %}
+        <tr data-estado="{{ m.id_estado.estado|upper }}">
+          <td>{{ m.equipo }}</td>
+          <td>{{ m.marca }}</td>
+          <td class="text-center">
+            {% if m.id_estado.estado|upper == "ORDEN DE TRABAJO" %}
+              <span class="badge bg-danger shadow">Orden de trabajo</span>
+            {% elif m.id_estado.estado|upper == "DISPONIBLE" %}
+              <span class="badge bg-success shadow">Disponible</span>
+            {% elif m.id_estado.estado|upper == "MANTENIMIENTO" %}
+              <span class="badge bg-warning text-dark shadow">Mantenimiento</span>
+            {% else %}
+              <span class="badge bg-secondary shadow">{{ m.id_estado.estado }}</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <button class="btn btn-outline-info btn-sm me-1 btn-detalle" data-id="{{ m.id_maq }}">
+              <i class="bi bi-eye"></i> Ver Ficha
+            </button>
+            <button class="btn btn-outline-warning btn-sm me-1 btn-editar" data-id="{{ m.id_maq }}">
+              <i class="bi bi-pencil"></i> Editar
+            </button>
+            <button type="button" 
+                    class="btn btn-outline-secondary btn-sm btn-toggle-estado"
+                    data-id="{{ m.id_maq }}" 
+                    data-estado-id="{{ m.id_estado.id_estado }}"
+                    
+                    data-bs-toggle="modal" 
+                    data-bs-target="#modalToggleEstado">
+                <i class="bi bi-arrow-repeat"></i> Cambiar Estado
+            </button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center text-muted">No hay maquinarias registradas.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL CREAR -->
+<div class="modal fade" id="modalCrear" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow-lg">
+      <form method="post" action="{% url 'crear_maquinaria' %}">
+        {% csrf_token %}
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Registrar Nueva Maquinaria</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Equipo</label>
+              <input class="form-control rounded-3" name="equipo" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Marca</label>
+              <input class="form-control rounded-3" name="marca">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Modelo</label>
+              <input class="form-control rounded-3" name="modelo">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Código</label>
+              <input class="form-control rounded-3" name="codigo">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Último Mantenimiento</label>
+              <input type="date" class="form-control rounded-3" name="ult_mant">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Consumo Combustible</label>
+              <input type="number" step="0.01" class="form-control rounded-3" name="consu_combus">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Estado</label>
+              <select class="form-select rounded-3" name="id_estado">
+                {% for estado in estados %}
+                  <option value="{{ estado.id_estado }}">{{ estado.estado }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Guardar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow-lg">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title"><i class="bi bi-card-text"></i> Detalle de Maquinaria</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row">
+          <div class="detail-label">Equipo</div>
+          <div class="detail-value" id="detalle-equipo"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Marca</div>
+          <div class="detail-value" id="detalle-marca"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Modelo</div>
+          <div class="detail-value" id="detalle-modelo"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Código</div>
+          <div class="detail-value" id="detalle-codigo"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Estado</div>
+          <div class="detail-value" id="detalle-estado"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Último Mantenimiento</div>
+          <div class="detail-value" id="detalle-ult_mant"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Consumo Combustible</div>
+          <div class="detail-value" id="detalle-consu_combus"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal fade" id="modalEditar" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow-lg">
+      <form id="formEditar" method="post" action="{% url 'editar_maquinaria' %}">
+        {% csrf_token %}
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Editar Maquinaria</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <input type="hidden" name="id_maq" id="edit-id_maq">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Equipo</label>
+              <input id="edit-equipo" name="equipo" class="form-control rounded-3">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Marca</label>
+              <input id="edit-marca" name="marca" class="form-control rounded-3">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Modelo</label>
+              <input id="edit-modelo" name="modelo" class="form-control rounded-3">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Código</label>
+              <input id="edit-codigo" name="codigo" class="form-control rounded-3">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Último Mantenimiento</label>
+              <input type="date" id="edit-ult_mant" name="ult_mant" class="form-control rounded-3">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Consumo Combustible</label>
+              <input type="number" step="0.01" id="edit-consu_combus" name="consu_combus" class="form-control rounded-3">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-warning">Guardar Cambios</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAMBIO DE ESTADO -->
+<div class="modal fade" id="modalToggleEstado" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <form id="formToggleEstado" method="post" action="{% url 'editar_maquinaria_estado' %}">
+                {% csrf_token %}
+                <input type="hidden" name="id_maq" id="toggle-id_maq">
+                
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="bi bi-arrow-repeat"></i> Actualizar Estado</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <p class="mb-3 fw-bold">Selecciona el nuevo estado:</p>
+                    
+                    <label for="toggle-id-estado" class="form-label fw-bold">Estado</label>
+                    <select class="form-select rounded-3 mb-3" name="id_estado" id="toggle-id-estado" required>
+                        {% for estado in estados %}
+                            <option value="{{ estado.id_estado }}">{{ estado.estado }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cerrarModalToggle()">Cancelar</button> 
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ALERTAS -->
+<div class="modal fade" id="alertasModal" tabindex="-1" aria-labelledby="alertasModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="alertasModalLabel"><i class="bi bi-exclamation-triangle-fill"></i> Historial de Alertas</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% if alertas %}
+                    <div class="list-group">
+                        {% for alerta in alertas %}
+                            <div class="list-group-item list-group-item-action mb-2 shadow-sm rounded-4 d-flex flex-column flex-md-row justify-content-between align-items-start">
+                                <div class="d-flex flex-column">
+                                    <h6 class="mb-1 fw-bold">{{ alerta.maquina.equipo }}</h6>
+                                    <small class="text-muted">{{ alerta.fecha|date:"d/m/Y H:i" }}</small>
+                                    <p class="mb-0 mt-1">{{ alerta.mensaje }}</p>
+                                </div>
+                                <div class="text-md-end mt-2 mt-md-0">
+                                    {% if alerta.trabajador %}
+                                        <span class="badge bg-info text-dark shadow">{{ alerta.trabajador.first_name }} {{ alerta.trabajador.apellido_pat }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary shadow">No asignado</span>
+                                    {% endif %}
+                                    {% if alerta.critico %}
+                                        <span class="badge bg-danger shadow ms-1">Crítico</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-bell-slash fs-1 text-muted"></i>
+                        <p class="mt-3 text-muted fw-semibold">No hay alertas registradas.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary shadow-sm" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // Función auxiliar para obtener el token CSRF (Mantenida)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+// Función auxiliar para abrir el modal de estado
+    function abrirModalToggle(id_maq, estado_id) { 
+        document.getElementById('toggle-id_maq').value = id_maq;
+        document.getElementById('toggle-id-estado').value = estado_id;
+
+        const form = document.getElementById('formToggleEstado');
+        form.action = "{% url 'editar_maquinaria_estado' %}"; 
+
+        // CORRECCIÓN CLAVE: Usamos getOrCreateInstance para abrir
+        const modalToggle = document.getElementById("modalToggleEstado");
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            bootstrap.Modal.getOrCreateInstance(modalToggle).show();
+        }
+    }
+    
+    document.addEventListener("DOMContentLoaded", () => {
+        // --- FUNCIÓN PARA ABRIR EL MODAL DE CAMBIO DE ESTADO ---
+        document.querySelectorAll(".btn-toggle-estado").forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = btn.dataset.id;
+                
+                // 1. Cargamos el detalle
+                const res = await fetch(`/maquinaria/${id}/detalle/`);
+                const data = await res.json();
+                
+                // 2. Abrimos el modal con el ID y el estado actual.
+                abrirModalToggle(data.id_maq, data.id_estado);
+            });
+        });
+
+        // NOTA: ELIMINAMOS TODOS LOS LISTENERS MANUALES DE CANCELAR.
+        // Bootstrap manejará el cierre del botón 'Cancelar' gracias a data-bs-dismiss="modal"
+        // y el sistema no se pegará si la instancia es correcta.
+        
+        // --- LISTENER PARA EL ENVÍO AJAX DEL MODAL DE ESTADO ---
+        const formToggle = document.getElementById('formToggleEstado');
+        if (formToggle) {
+            formToggle.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(formToggle);
+                const csrftoken = getCookie('csrftoken');
+                
+                // LÓGICA DE FECHA CLAVE
+                const estado_select = formToggle.querySelector('#toggle-id-estado');
+                const estado_nombre = estado_select.options[estado_select.selectedIndex].text.toUpperCase();
+
+                if (estado_nombre === 'MANTENIMIENTO') {
+                    const today = new Date().toISOString().split('T')[0];
+                    formData.set('ult_mant', today); 
+                }
+                
+                try {
+                    const res = await fetch(formToggle.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    });
+                    
+                    const json = await res.json();
+                    if (json.success) {
+                        alert(`Estado actualizado a ${json.estado}.`);
+                        // Usamos la instancia para cerrar, aunque data-bs-dismiss podría funcionar
+                        const modalElement = document.getElementById("modalToggleEstado");
+                        bootstrap.Modal.getInstance(modalElement).hide(); 
+                        location.reload();
+                    } else {
+                        alert(json.message || 'Error al actualizar el estado de la maquinaria.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Error de red al intentar actualizar el estado.');
+                }
+            });
+        }
+        
+        // --- RESTO DE TU CÓDIGO (Crear, Filtro, Detalle, Editar) ---
+
+        // Abrir modal de creación
+        document.getElementById("btnCrear").addEventListener("click", () => {
+            new bootstrap.Modal(document.getElementById("modalCrear")).show();
+        });
+
+        // FILTRO: dropdown items
+        const filterItems = document.querySelectorAll('.filter-item');
+        const filterLabel = document.getElementById('filterLabel');
+        const filterDot = document.getElementById('filterDot');
+
+        function applyFilter(filter) {
+            document.querySelectorAll("#tabla-maquinaria tbody tr").forEach(row => {
+                const estado = row.getAttribute("data-estado");
+                row.style.display = (filter === "all" || estado === filter) ? "" : "none";
+            });
+        }
+
+        applyFilter('all');
+
+        filterItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                filterItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+
+                const filter = item.getAttribute('data-filter');
+                filterLabel.innerText = item.textContent.trim();
+                
+                if (filter === 'DISPONIBLE') filterDot.style.background = '#16a34a';
+                else if (filter === 'MANTENIMIENTO') filterDot.style.background = '#f59e0b';
+                else if (filter === 'ORDEN DE TRABAJO') filterDot.style.background = '#dc2626';
+                else filterDot.style.background = '#6b7280';
+                
+                applyFilter(filter);
+            });
+        });
+
+        // Detalle modal
+        document.querySelectorAll(".btn-detalle").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                fetch(`/maquinaria/${id}/detalle/`)
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('detalle-equipo').innerText = data.equipo || '-';
+                        document.getElementById('detalle-marca').innerText = data.marca || '-';
+                        document.getElementById('detalle-modelo').innerText = data.modelo || '-';
+                        document.getElementById('detalle-codigo').innerText = data.codigo || '-';
+                        document.getElementById('detalle-estado').innerText = data.estado || '-';
+                        document.getElementById('detalle-ult_mant').innerText = data.ult_mant || '-';
+                        document.getElementById('detalle-consu_combus').innerText = data.consu_combus || '-';
+                        new bootstrap.Modal(document.getElementById("modalDetalle")).show();
+                    });
+            });
+        });
+
+        // Editar modal: carga datos en form
+        document.querySelectorAll(".btn-editar").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                fetch(`/maquinaria/${id}/detalle/`)
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('edit-id_maq').value = data.id_maq;
+                        document.getElementById('edit-equipo').value = data.equipo || '';
+                        document.getElementById('edit-marca').value = data.marca || '';
+                        document.getElementById('edit-modelo').value = data.modelo || '';
+                        document.getElementById('edit-codigo').value = data.codigo || '';
+                        document.getElementById('edit-ult_mant').value = data.ult_mant || '';
+                        document.getElementById('edit-consu_combus').value = data.consu_combus || '';
+                        new bootstrap.Modal(document.getElementById("modalEditar")).show();
+                    });
+            });
+        });
+
+    });
+    
+    // Añade esta función a tu script
+function cerrarModalToggle() {
+    const modalElement = document.getElementById("modalToggleEstado");
+    
+    // 1. Obtener la instancia de Bootstrap Modal
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+    
+    if (modalInstance) {
+        // 2. Ocultar el modal correctamente
+        modalInstance.hide();
+    } else {
+        // 3. Solución de respaldo (si Bootstrap falló en inicializar)
+        modalElement.style.display = 'none';
+        modalElement.classList.remove('show');
+        modalElement.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        
+        // Remover el backdrop (la capa opaca) manualmente si existe
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+    }
+}
+
+// Dentro de document.addEventListener("DOMContentLoaded", ...)
+// Es importante re-adjuntar el listener al botón Cancelar
+document.addEventListener("DOMContentLoaded", () => {
+    // ... (Tu código de Abrir modal, Filtros, etc.) ...
+
+    // Listener para el botón Cancelar del modal de cambio de estado
+    const btnCancelarToggle = document.querySelector('#modalToggleEstado .modal-footer button[data-bs-dismiss="modal"]');
+    if (btnCancelarToggle) {
+        btnCancelarToggle.addEventListener('click', cerrarModalToggle);
+    }
+    
+    // ... (Resto de tu código DOMContentLoaded) ...
+});
+</script>
+
+{% endblock %}

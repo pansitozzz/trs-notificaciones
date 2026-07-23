@@ -1,0 +1,872 @@
+{% extends "webApp/base.html" %}
+{% block title %}Gestión de Trabajadores{% endblock %}
+{% block content %}
+
+<div id="tabla-trabajadores-container">
+    <h2 class="titulo-tabla">LISTA DE TRABAJADORES</h2>
+    
+    <div class="container">
+        {% if usuario.id_privilegio.id_privilegio == 1 %}
+        <div class="text-center mb-3">
+            <button class="btn btn-success" onclick="abrirModalCrear()">➕ Nuevo Trabajador</button>
+        </div>
+        {% endif %}
+
+        <div class="tabla-container">
+            <table class="tabla-trabajadores table table-hover align-middle" id="tabla-trabajadores">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 14%;">Nombre</th>
+                        <th style="width: 14%;">Apellido Paterno</th>
+                        <th style="width: 14%;">Apellido Materno</th>
+                        <th style="width: 20%;">Ocupación</th>
+                        
+                        {% if usuario.id_privilegio.id_privilegio == 1 or usuario.id_privilegio.id_privilegio == 2 %}
+                        <th style="width: 10%;">Actividad Mes</th>
+                        {% endif %}
+
+                        <th style="width: 15%;">Privilegio</th>
+                        
+                        {% if usuario.id_privilegio.id_privilegio != 3 %}
+                            <th style="width: 18%;">Acciones</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trabajador in trabajadores %}
+                    <tr>
+                        <td>{{ trabajador.first_name }}</td>
+                        <td>{{ trabajador.apellido_pat }}</td>
+                        <td>{{ trabajador.apellido_mat }}</td>
+                        <td>{{ trabajador.ocupacion }}</td>
+                        
+                        {% if usuario.id_privilegio.id_privilegio == 1 or usuario.id_privilegio.id_privilegio == 2 %}
+                        <td class="text-center">
+                            {% if trabajador.id_privilegio.id_privilegio == 3 %}
+                                <span class="badge bg-info text-dark" style="font-size: 0.85rem;" title="Horas registradas este mes">
+                                    <i class="bi bi-clock"></i> {{ trabajador.total_horas|default_if_none:"0" }} hrs
+                                </span>
+                        
+                            {% elif trabajador.id_privilegio.id_privilegio == 2 %}
+                                <span class="badge bg-success" style="font-size: 0.85rem;" title="Asignaciones creadas este mes">
+                                    <i class="bi bi-clipboard-check"></i> {{ trabajador.total_creadas }} asig.
+                                </span>
+                        
+                            {% else %}
+                                <span class="text-secondary fw-bold" style="font-size: 1.2rem;">-</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+
+                        <td>{{ trabajador.id_privilegio.privilegio }}</td>
+
+                        {% if usuario.id_privilegio.id_privilegio != 3 %}
+                        <td>
+                            <button class="btn btn-outline-info btn-sm btn-ver-ficha" data-id="{{ trabajador.id_emp }}">
+                                Ver ficha
+                            </button>
+                            
+                            {% if usuario.id_privilegio.id_privilegio == 1 %}
+                            <button class="btn btn-outline-secondary btn-sm btn-tabla"
+                                    data-id="{{ trabajador.id_emp }}"
+                                    data-estado="{{ trabajador.id_status_tra.id_status_tra }}"
+                                    onclick="cambiarEstado(this)">
+                                {% if trabajador.id_status_tra.id_status_tra == 1 %} Deshabilitar {% else %} Habilitar {% endif %}
+                            </button>
+                            {% endif %}
+
+                            {% if usuario.id_privilegio.id_privilegio == 1 or usuario.id_privilegio.id_privilegio == 2 %}
+                            <button class="btn btn-outline-warning btn-sm btnEditar"
+                                data-id="{{ trabajador.id_emp }}">
+                                ✏️</button>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="sin-datos">No hay trabajadores registrados</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div id="modalCrear" class="modal" aria-hidden="true">
+    <div class="modal-content crear-modal">
+        <span class="close" onclick="cerrarModalCrear()">&times;</span>
+        <h2>Agregar Nuevo Trabajador</h2>
+        <form method="POST" action="{% url 'crear_trabajador' %}" class="form-agregar">
+            {% csrf_token %}
+
+            <h3>Datos Personales</h3>
+            <div class="row-form">
+                <div class="form-group">
+                    <label>DNI</label>
+                    <input type="number" name="dni" min="10000000" max="99999999" required>
+                </div>
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" name="first_name" style="text-transform: uppercase;" required>
+                </div>
+            </div>
+            <div class="row-form">
+                <div class="form-group">
+                    <label>Apellido Paterno</label>
+                    <input type="text" name="apellido_pat" style="text-transform: uppercase;" required>
+                </div>
+                <div class="form-group">
+                    <label>Apellido Materno</label>
+                    <input type="text" name="apellido_mat" style="text-transform: uppercase;" required>
+                </div>
+            </div>
+            <div class="row-form">
+                <div class="form-group">
+                    <label>Fecha de Nacimiento</label>
+                    <input type="date" name="fecha_nacimiento">
+                </div>
+                <div class="form-group">
+                    <label>Celular</label>
+                    <input type="text" name="celular" maxlength="9">
+                </div>
+            </div>
+            <div class="row-form">
+                <div class="form-group full-width">
+                    <label>Distrito</label>
+                    <select name="id_distrito">
+                        <option value="">-- Seleccionar Distrito --</option>
+                        {% for d in distritos %}
+                            <option value="{{ d.id_distrito }}">{{ d.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <h3>Datos Laborales</h3>
+            <div class="row-form">
+                <div class="form-group">
+                    <label>Ocupacion</label>
+                    <input type="text" name="ocupacion" required>
+                </div>
+                <div class="form-group">
+                    <label>Fecha de Inicio</label>
+                    <input type="date" name="fec_init" required>
+                </div>
+            </div>
+
+            <h3>Usuario y Privilegio</h3>
+            <div class="row-form">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" name="usuario" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" name="contra" required>
+                </div>
+            </div>
+            <div class="row-form">
+                <div class="form-group full-width">
+                    <label>Privilegio</label>
+                    <select name="id_privilegio" required>
+                        <option value="">-- Seleccionar Privilegio --</option>
+                        {% for p in privilegios %}
+                            <option value="{{ p.id_privilegio }}">{{ p.privilegio }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <h3>Datos Bancarios</h3>
+            <div class="row-form">
+                <div class="form-group full-width">
+                    <label>AFP</label>
+                    <select name="id_afp">
+                        <option value="">-- Seleccionar AFP --</option>
+                        {% for a in afps %}
+                            <option value="{{ a.id_afp }}">{{ a.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row-form">
+                <div class="form-group full-width">
+                    <label>Banco</label>
+                    <select name="id_banco">
+                        <option value="">-- Seleccionar Banco --</option>
+                        {% for b in bancos %}
+                            <option value="{{ b.id_banco }}">{{ b.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row-form">
+                <div class="form-group">
+                    <label>Sueldo</label>
+                    <input type="number" name="sueldo" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Cuenta Bancaria</label>
+                    <input type="text" name="cuenta_bancaria">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">Guardar Trabajador</button>
+        </form>
+    </div>
+</div>
+
+<div id="fichaModal" class="modalFicha">
+    <div class="modal-contentFicha">
+        <span class="cerrarFicha" onclick="cerrarModal('fichaModal')">&times;</span>
+        <h2>Ficha del Trabajador</h2>
+
+        <div class="detail-container"> 
+            <div class="detail-row"><strong>DNI:</strong> <span id="dni"></span></div>
+            <div class="detail-row"><strong>Nombre:</strong> <span id="nombre"></span></div>
+            <div class="detail-row"><strong>Apellido Paterno:</strong> <span id="apellido_pat"></span></div>
+            <div class="detail-row"><strong>Apellido Materno:</strong> <span id="apellido_mat"></span></div>
+            <div class="detail-row"><strong>Ocupacion:</strong> <span id="ocupacion"></span></div>
+            <div class="detail-row"><strong>Fecha Inicio:</strong> <span id="fec_init"></span></div>
+            <div class="detail-row"><strong>Privilegio:</strong> <span id="privilegio"></span></div>
+            <div class="detail-row"><strong>AFP:</strong> <span id="afp"></span></div>
+            <div class="detail-row"><strong>Banco:</strong> <span id="banco"></span></div>
+            <div class="detail-row"><strong>Distrito:</strong> <span id="distrito"></span></div>
+            <div class="detail-row"><strong>Status:</strong> <span id="status"></span></div>
+            <div class="detail-row"><strong>Sueldo:</strong> <span id="sueldo"></span></div>
+            <div class="detail-row"><strong>Cuenta Bancaria:</strong> <span id="cuenta_bancaria"></span></div>
+            <div class="detail-row"><strong>Celular:</strong> <span id="celular"></span></div>
+            <div class="detail-row"><strong>Fecha de Nacimiento:</strong> <span id="fecha_nacimiento"></span></div>
+        </div>
+
+        <br>
+        <a id="btn-exportar" href="#" class="btn-exportar">Exportar Ficha</a>
+    </div>
+</div>
+
+<div id="editarModal" class="modal">
+    <div class="modal-content">
+        <span class="cerrar" id="cerrarModal">&times;</span>
+        <h5>Editar Trabajador</h5>
+        <form id="formEditar">
+            {% csrf_token %}
+            <input type="hidden" name="id_emp" id="modal_id_emp">
+
+            <input type="hidden" name="dni" id="hidden_dni">
+            <input type="hidden" name="first_name" id="hidden_first_name">
+            <input type="hidden" name="apellido_pat" id="hidden_apellido_pat">
+            <input type="hidden" name="apellido_mat" id="hidden_apellido_mat">
+            <input type="hidden" name="fecha_nacimiento" id="hidden_fecha_nacimiento">
+            <input type="hidden" name="fec_init" id="hidden_fec_init">
+            <input type="hidden" name="usuario" id="hidden_usuario">
+            <input type="hidden" name="id_status_tra" id="hidden_id_status_tra">
+            <div class="detail-container">
+                <div class="detail-row"><strong>DNI:</strong> <span id="modal_dni"></span></div>
+                <div class="detail-row"><strong>Nombre:</strong> <span id="modal_nombre"></span></div>
+                <div class="detail-row"><strong>Apellido Paterno:</strong> <span id="modal_apellido_pat"></span></div>
+                <div class="detail-row"><strong>Apellido Materno:</strong> <span id="modal_apellido_mat"></span></div>
+                <div class="detail-row"><strong>Fecha Nacimiento:</strong> <span id="modal_fecha_nac"></span></div>
+                <div class="detail-row"><strong>Fecha Inicio:</strong> <span id="modal_fec_init"></span></div>
+                <div class="detail-row"><strong>Usuario:</strong> <span id="modal_usuario"></span></div>
+            </div>
+
+            <div class="input-group-row">
+                <label>Celular</label>
+                <input type="text" name="celular" id="modal_celular">
+            </div>
+            <div class="input-group-row">
+                <label>Distrito</label>
+                <select name="id_distrito" id="modal_distrito">
+                    {% for d in distritos %}
+                    <option value="{{ d.id_distrito }}">{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="input-group-row">
+                <label>Ocupación</label>
+                <input type="text" name="ocupacion" id="modal_ocupacion">
+            </div>
+            <div class="input-group-row">
+                <label>Privilegio</label>
+                <select name="id_privilegio" id="modal_privilegio">
+                    {% for p in privilegios %}
+                    <option value="{{ p.id_privilegio }}">{{ p.privilegio }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="input-group-row">
+                <label>AFP</label>
+                <select name="id_afp" id="modal_afp">
+                    {% for a in afps %}
+                    <option value="{{ a.id_afp }}">{{ a.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="input-group-row">
+                <label>Banco</label>
+                <select name="id_banco" id="modal_banco">
+                    {% for b in bancos %}
+                    <option value="{{ b.id_banco }}">{{ b.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="input-group-row">
+                <label>Sueldo</label>
+                <input type="number" name="sueldo" id="modal_sueldo" step="0.01">
+            </div>
+            <div class="input-group-row">
+                <label>Cuenta Bancaria</label>
+                <input type="text" name="cuenta_bancaria" id="modal_cuenta_bancaria">
+            </div>
+
+            <button type="submit" class="btn-submit">Guardar Cambios</button>
+        </form>
+    </div>
+</div>
+
+
+<style>
+    /* ========================================================= */
+    /* 1. ESTILOS DE TABLA (INTACTOS - TU CÓDIGO)           */
+    /* ========================================================= */
+
+    /* === AJUSTE DE ANCHO COMPLETO PARA EL CONTENEDOR PRINCIPAL === */
+    .container {
+        width: 100%;
+        padding: 0 20px; 
+    }
+    .tabla-container {
+        padding: 16px;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        overflow-x: auto; 
+        max-width: 100%; 
+    }
+
+    .titulo-tabla {
+        text-align: center;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #2c3e50;
+    }
+
+    /* === ESTILOS DE TABLA === */
+    .tabla-trabajadores {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "Segoe UI", sans-serif;
+        font-size: 14px;
+        table-layout: auto; 
+    }
+
+    .tabla-trabajadores thead {
+        background: #343a40 !important; 
+        color: white !important; 
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .tabla-trabajadores th {
+        color: white !important; 
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+        white-space: nowrap; 
+    }
+    .tabla-trabajadores td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+        color: #333;
+        font-weight: 400;
+        vertical-align: middle;
+        white-space: nowrap; 
+    }
+
+    .tabla-trabajadores tbody tr:last-child td {
+        border-bottom: none; 
+    }
+
+    .tabla-trabajadores tbody tr:hover {
+        background-color: #f8fafc;
+        transition: 0.18s;
+    }
+
+    /* === ACCIONES Y BOTONES === */
+    .tabla-trabajadores td:last-child {
+        display: flex;
+        gap: 5px; 
+        align-items: center;
+        justify-content: center; 
+    }
+
+    .btn-ver-ficha,
+    .btn-tabla,
+    .btnEditar {
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        padding: 6px 10px !important;
+        border-radius: 4px !important;
+        white-space: nowrap;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid transparent; 
+    }
+
+    .btn-ver-ficha { background-color: #0d6efd; color: white; }
+    .btn-ver-ficha:hover { background-color: #0d6efd; color: white; box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5); }
+
+    .btn-tabla { background-color: #6c757d; color: white; }
+    .btn-tabla:hover { background-color: #6c757d; color: white; box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.5); }
+
+    .btnEditar { background-color: #198754; color: white; padding: 6px 8px !important; }
+    .btnEditar:hover { background-color: #198754; color: white; box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.5); }
+
+    /* Botón Nuevo Trabajador */
+    .btn-success {
+        background-color: #00a97f !important;
+        border: none !important;
+        color: white;
+        font-weight: 600;
+        padding: 10px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
+        transition: transform 0.2s, background 0.3s;
+    }
+    .btn-success:hover {
+        transform: translateY(-1px);
+        background: #008f6a !important;
+    }
+
+    .sin-datos {
+        text-align: center;
+        font-style: italic;
+        color: #777;
+    }
+
+    /* ========================================================= */
+    /* 2. ESTILOS DE MODALES (ACTUALIZADOS Y MEJORADOS)     */
+    /* ========================================================= */
+
+    /* Fondo oscuro (Overlay) */
+    .modalFicha, 
+    #editarModal,
+    #modalCrear { /* Agrego modalCrear para que también se vea bien */
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.65); /* Fondo un poco más oscuro */
+        justify-content: center;
+        align-items: center;
+        animation: fadeInSoft 0.3s ease;
+        overflow-y: auto; /* Permite scroll si la pantalla es muy chica */
+    }
+
+    /* Contenedor Blanco de los Modales */
+    .modal-contentFicha, 
+    #editarModal .modal-content,
+    .crear-modal {
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 16px; /* Bordes más redondeados */
+        width: 500px; /* Un ancho cómodo */
+        max-width: 90%;
+        max-height: 90vh;
+        overflow-y: auto; /* Scroll interno si es muy alto */
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); /* Sombra elegante */
+        animation: fadeInUp 0.35s ease;
+        margin: auto; /* Centrado en pantallas con scroll */
+    }
+
+    /* Botón Cerrar (X) */
+    .cerrarFicha, 
+    #editarModal .cerrar,
+    .crear-modal .close {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 24px;
+        font-weight: bold;
+        color: #aaa;
+        cursor: pointer;
+        transition: color 0.2s;
+        line-height: 1;
+    }
+    .cerrarFicha:hover, 
+    #editarModal .cerrar:hover,
+    .crear-modal .close:hover {
+        color: #e74c3c;
+    }
+
+    /* Títulos de los Modales */
+    .modal-contentFicha h2, 
+    #editarModal h5,
+    .crear-modal h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 25px;
+        text-align: center;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+    }
+    
+    /* Subtítulos (h3) en Crear */
+    .crear-modal h3 {
+        font-size: 1.1rem;
+        color: #00a97f;
+        margin-top: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #00a97f;
+        padding-left: 10px;
+    }
+
+    /* --- ESTILOS DE FORMULARIOS (Editar y Crear) --- */
+
+    /* Etiquetas */
+    #editarModal form label,
+    .form-agregar label {
+        display: block;
+        font-weight: 600;
+        color: #444;
+        margin-top: 10px;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+    }
+
+    /* Inputs y Selects */
+    #editarModal form input, 
+    #editarModal form select,
+    .form-agregar input,
+    .form-agregar select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        background-color: #f9fafb;
+        transition: all 0.2s;
+        box-sizing: border-box; /* Importante para padding */
+    }
+
+    #editarModal form input:focus, 
+    #editarModal form select:focus,
+    .form-agregar input:focus,
+    .form-agregar select:focus {
+        outline: none;
+        border-color: #00a97f;
+        background-color: #fff;
+        box-shadow: 0 0 0 3px rgba(0, 169, 127, 0.2);
+    }
+    
+    /* Contenedores de inputs (para Flexbox en Crear) */
+    .row-form {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 5px;
+    }
+    .form-group {
+        flex: 1;
+    }
+    .form-group.full-width {
+        flex: 100%;
+    }
+
+    /* --- ESTILOS DE "VER FICHA" (Solo Lectura) --- */
+    
+    /* Contenedor de detalles */
+    .detail-container {
+        margin-top: 10px;
+    }
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px dashed #e5e7eb;
+        font-size: 14px;
+        color: #374151;
+    }
+    .detail-row strong {
+        color: #111827;
+        font-weight: 600;
+    }
+    .detail-row span {
+        text-align: right;
+        font-weight: 400;
+        max-width: 60%;
+        word-wrap: break-word;
+    }
+
+    /* --- BOTONES DE LOS MODALES --- */
+
+    /* Botón Guardar (Verde Principal) */
+    .btn-submit {
+        display: block;
+        width: 100%;
+        background: #00a97f;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 25px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+    .btn-submit:hover {
+        background: #008f6a;
+    }
+
+    /* Botón Exportar PDF */
+    .btn-exportar {
+        display: block;
+        text-align: center;
+        background: #3498db; /* Azul para diferenciar */
+        color: #fff;
+        padding: 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        margin-top: 20px;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+    .btn-exportar:hover {
+        background: #2980b9;
+        color: #fff;
+    }
+
+    /* Animaciones */
+    @keyframes fadeInSoft {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('editarModal');
+    const btnCerrar = document.getElementById('cerrarModal');
+    const formEditar = document.getElementById('formEditar');
+
+    // --- 1. ABRIR MODAL Y CARGAR DATOS ---
+    document.querySelectorAll('.btnEditar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            fetch("{% url 'editar_trabajador' %}?id_emp=" + id, {
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(res => res.json())
+            .then(data => {
+                // 1. Campos Ocultos (ID y datos necesarios para validación)
+                document.getElementById('modal_id_emp').value = data.id_emp;
+                
+                // === LLENADO DE INPUTS OCULTOS (Para que pasen validación) ===
+                document.getElementById('hidden_dni').value = data.dni || '';
+                document.getElementById('hidden_first_name').value = data.first_name || '';
+                document.getElementById('hidden_apellido_pat').value = data.apellido_pat || '';
+                document.getElementById('hidden_apellido_mat').value = data.apellido_mat || '';
+                document.getElementById('hidden_fecha_nacimiento').value = data.fecha_nacimiento || '';
+                document.getElementById('hidden_fec_init').value = data.fec_init || '';
+                document.getElementById('hidden_usuario').value = data.usuario || '';
+                // CORRECCIÓN CLAVE: Asignar el valor al input oculto de estado
+                document.getElementById('hidden_id_status_tra').value = data.id_status_tra || ''; 
+                // ============================================================
+
+                // 2. Campos Visuales (Solo Lectura)
+                document.getElementById('modal_dni').textContent = data.dni;
+                document.getElementById('modal_nombre').textContent = data.first_name;
+                document.getElementById('modal_apellido_pat').textContent = data.apellido_pat;
+                document.getElementById('modal_apellido_mat').textContent = data.apellido_mat;
+                document.getElementById('modal_fecha_nac').textContent = data.fecha_nacimiento;
+                document.getElementById('modal_fec_init').textContent = data.fec_init || '';
+                document.getElementById('modal_usuario').textContent = data.usuario || '';
+                
+                // 3. Campos Editables (Inputs y Selects)
+                document.getElementById('modal_celular').value = data.celular || '';
+                document.getElementById('modal_ocupacion').value = data.ocupacion || '';
+                document.getElementById('modal_sueldo').value = data.sueldo || '';
+                document.getElementById('modal_cuenta_bancaria').value = data.cuenta_bancaria || '';
+
+                // 4. Selects Relacionados
+                document.getElementById('modal_distrito').value = data.id_distrito || '';
+                document.getElementById('modal_privilegio').value = data.id_privilegio || '';
+                document.getElementById('modal_afp').value = data.id_afp || '';
+                document.getElementById('modal_banco').value = data.id_banco || '';
+
+                // Mostrar el modal
+                modal.style.display = 'flex';
+            })
+            .catch(err => console.error(err));
+        });
+    });
+
+    // --- 2. CERRAR MODAL ---
+    btnCerrar.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+
+    // --- 3. SUBMIT AJAX (Guardar) ---
+    formEditar.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const formData = new FormData(formEditar);
+
+        fetch("{% url 'editar_trabajador' %}", {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken,
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                alert('Trabajador actualizado correctamente');
+                location.reload();
+            } else {
+                console.error(data.errors);
+                let errorMsg = 'Ocurrieron errores al actualizar:\n';
+                for (const [key, value] of Object.entries(data.errors)) {
+                    errorMsg += `${key}: ${value}\n`;
+                }
+                alert(errorMsg);
+            }
+        })
+        .catch(err => console.error(err));
+    });
+});
+
+
+// ===================================================
+//           FUNCIONES GLOBALES
+// ===================================================
+
+function _mostrarGestion() {
+    const w = document.getElementById("welcome-section");
+    if (w) w.style.display = "none";
+    const btn = document.getElementById("nuevo-trabajador-btn");
+    if (btn) btn.style.display = "block";
+    const tabla = document.getElementById("tabla-trabajadores-container");
+    if (tabla) tabla.style.display = "block";
+}
+
+function mostrarTabla() { _mostrarGestion(); }
+function mostrarGestionTrabajadores() { _mostrarGestion(); }
+
+function abrirModalCrear() { 
+    document.getElementById("modalCrear").style.display = "flex"; 
+}
+function cerrarModalCrear() { 
+    document.getElementById("modalCrear").style.display = "none"; 
+}
+
+function verFicha(id_emp) {
+    console.log("Abriendo ficha con id:", id_emp); 
+    document.getElementById("fichaModal").style.display = "flex";
+    fetch(`/trabajador/${id_emp}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("dni").textContent = data.dni;
+            document.getElementById("nombre").textContent = data.nombre;
+            document.getElementById("apellido_pat").textContent = data.apellido_pat;
+            document.getElementById("apellido_mat").textContent = data.apellido_mat;
+            document.getElementById("ocupacion").textContent = data.ocupacion;
+            document.getElementById("fec_init").textContent = data.fec_init;
+            document.getElementById("privilegio").textContent = data.privilegio;
+            document.getElementById("afp").textContent = data.afp;
+            document.getElementById("banco").textContent = data.banco;
+            document.getElementById("distrito").textContent = data.distrito;
+            document.getElementById("status").textContent = data.status;
+            document.getElementById("sueldo").textContent = data.sueldo;
+            document.getElementById("cuenta_bancaria").textContent = data.cuenta_bancaria;
+            document.getElementById("celular").textContent = data.celular;
+            document.getElementById("fecha_nacimiento").textContent = data.fecha_nacimiento;
+    
+            document.getElementById("btn-exportar").href = `/trabajador/${id_emp}/exportar/`;
+            document.getElementById("fichaModal").style.display = "flex";
+        });
+}
+
+document.querySelectorAll(".btn-ver-ficha").forEach(btn => {
+    btn.addEventListener("click", function() {
+        const id = this.dataset.id;
+        verFicha(id);
+    });
+});
+
+function cerrarModal() {
+    document.getElementById("fichaModal").style.display = "none";
+}
+
+window.addEventListener("click", function(event) {
+    const modFicha = document.getElementById("fichaModal");
+    const modCrear = document.getElementById("modalCrear");
+    const modEdit = document.getElementById("editarModal"); 
+    
+    if (event.target === modFicha) {
+        modFicha.style.display = "none";
+    }
+    if (event.target === modCrear) {
+        modCrear.style.display = "none";
+    }
+    if (event.target === modEdit) {
+        modEdit.style.display = "none";
+    }
+});
+
+function cambiarEstado(btn) {
+    const id = btn.dataset.idemp || btn.dataset.id;
+    const estadoActual = parseInt(btn.dataset.estado || "1");
+    const nuevoEstado = estadoActual === 1 ? 2 : 1;
+    if (!id) return alert("ID no disponible.");
+
+    const confirmar = confirm(`¿Deseas ${nuevoEstado === 1 ? 'habilitar' : 'deshabilitar'} este trabajador?`);
+    if (!confirmar) return;
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "{% url 'cambiar_estado_trabajador' %}";
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value; 
+    const csrfInput = document.createElement("input");
+    csrfInput.type = "hidden";
+    csrfInput.name = "csrfmiddlewaretoken";
+    csrfInput.value = csrfToken; 
+    form.appendChild(csrfInput);
+
+    const idInput = document.createElement("input");
+    idInput.type = "hidden";
+    idInput.name = "id";
+    idInput.value = id;
+    form.appendChild(idInput);
+
+    const estInput = document.createElement("input");
+    estInput.type = "hidden";
+    estInput.name = "estado";
+    estInput.value = nuevoEstado;
+    form.appendChild(estInput);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+
+{% endblock %}

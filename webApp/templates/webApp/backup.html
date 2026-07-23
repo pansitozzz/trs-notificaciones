@@ -1,0 +1,29 @@
+{% extends "webApp/base.html" %}
+{% load static %}
+
+{% block title %}Exportar Backup{% endblock %}
+
+{% block content %}
+<div class="home-container">
+    <div class="welcome-box">
+        <h1 class="welcome-title">Exportar Backup</h1>
+        <p>Selecciona el formato que deseas descargar:</p>
+    </div>
+
+    <div class="cards-section">
+
+        <a href="{% url 'exportar_backup_csv' %}" class="card">
+            <div class="icon">🟦</div>
+            <h3>Exportar CSV</h3>
+            <p>Descargar toda la base de datos en formato CSV.</p>
+        </a>
+
+        <a href="{% url 'exportar_backup_json' %}" class="card">
+            <div class="icon">🟧</div>
+            <h3>Exportar JSON</h3>
+            <p>Descargar datos estructurados en formato JSON.</p>
+        </a>
+
+    </div>
+</div>
+{% endblock %}
