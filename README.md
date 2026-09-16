@@ -1,37 +1,52 @@
 # TRS Notificaciones
 
-Sistema web de gestión de maquinaria y trabajadores con notificaciones en tiempo real de mantenimientos, asignaciones y eventos.
+Sistema web en Django para la gestión de maquinaria y trabajadores, con seguimiento de asignaciones, mantenimientos y notificaciones operativas.
 
-## Problema / contexto
+## Contexto
 
-Proyecto propio, sin cliente ni terceros de por medio. Lo construí para llevar el control de maquinaria, el personal asignado a cada equipo y las alertas de mantenimiento, todo en un solo sistema.
+Proyecto propio desarrollado para centralizar el control de equipos, personal asignado y alertas de mantenimiento en una sola aplicación web.
 
-El sistema estuvo desplegado en producción real en el dominio `trsadmin.site`, sobre un hosting compartido de GoDaddy administrado con cPanel (Passenger WSGI).
+El sistema estuvo desplegado en producción en `trsadmin.site` mediante hosting compartido de GoDaddy con cPanel y Passenger WSGI. El repositorio actual conserva únicamente la configuración necesaria para ejecutar una versión local del proyecto.
 
-## Stack
+## Funcionalidades principales
 
-- **Backend:** Django 4.2.13 (Python 3.9)
+- Gestión de maquinaria y estado operativo.
+- Gestión de trabajadores y asignaciones.
+- Seguimiento de órdenes y mantenimientos.
+- Notificaciones sobre asignaciones y eventos operativos.
+- Dashboard con métricas y gráficos.
+- Gestión de imágenes mediante Cloudinary.
+- Configuración sensible mediante variables de entorno.
+
+## Stack tecnológico
+
+- **Backend:** Python 3.9, Django 4.2.13
 - **Base de datos:** MySQL
-- **Almacenamiento de imágenes:** Cloudinary
-- **Despliegue original:** cPanel + Passenger WSGI (GoDaddy)
-- **Configuración:** variables de entorno con `python-decouple`
+- **Imágenes:** Cloudinary
+- **Despliegue original:** GoDaddy, cPanel, Passenger WSGI
+- **Configuración:** `python-decouple`
 
-## Cómo correrlo localmente
+## Ejecución local
 
 ### 1. Clonar e instalar dependencias
 
 ```bash
-git clone <este-repo>
+git clone https://github.com/pansitozzz/trs-notificaciones.git
 cd trs-notificaciones
 python -m venv venv
-venv\Scripts\activate       # Windows
-source venv/bin/activate    # Linux / Mac
+
+# Windows
+venv\Scripts\activate
+
+# Linux / macOS
+# source venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
 ### 2. Variables de entorno
 
-Copia `.env.example` a `.env` y completa tus propios valores (clave secreta, credenciales de tu base de datos MySQL local y credenciales de tu propia cuenta de Cloudinary):
+Copiar `.env.example` como `.env` y completar las variables requeridas:
 
 ```bash
 cp .env.example .env
@@ -39,39 +54,39 @@ cp .env.example .env
 
 ### 3. Base de datos
 
-Crea una base de datos MySQL vacía con el nombre que pusiste en `DB_NAME` y aplica las migraciones:
+Crear una base de datos MySQL vacía con el nombre definido en `DB_NAME` y ejecutar:
 
 ```bash
 python manage.py migrate
 ```
 
-Esto crea todas las tablas, incluidas varias que en el despliegue original ya existían en el servidor (por eso los modelos correspondientes están marcados como `managed = False`). La migración `0010_crear_tablas_heredadas` se encarga de crearlas también en una base de datos nueva, sin pasos manuales adicionales.
+### 4. Usuario inicial
 
-### 4. Crear el primer usuario para iniciar sesión
-
-El login de la app usa un modelo propio (`Trabajador`), no el sistema de usuarios de Django, así que `createsuperuser` no sirve para entrar a la app (solo da acceso al `/admin/` de Django, donde estos modelos no están registrados). Usa este comando en su lugar:
+La aplicación utiliza un modelo propio de trabajador para autenticación. Para crear un usuario local de administración:
 
 ```bash
-python manage.py crear_trabajador_admin --usuario admin --password "tu-password"
+python manage.py crear_trabajador_admin --usuario admin --password "elige-una-password-segura"
 ```
 
-Si no pasas `--usuario`/`--password`, se crea `admin` / `admin1234` por defecto.
-
-### 5. Levantar el servidor
+### 5. Ejecutar
 
 ```bash
 python manage.py runserver
 ```
 
-El sistema queda disponible en `http://127.0.0.1:8000/`.
+La aplicación queda disponible en `http://127.0.0.1:8000/`.
 
 ## Capturas
 
 ![Panel de control con métricas de órdenes de trabajo y gráficos de uso de maquinaria](docs/screenshots/dashboard.png)
-*Panel de control con órdenes pendientes/completadas, ranking de trabajadores y uso de maquinaria (datos de demostración).*
+*Panel de control con órdenes pendientes y completadas, ranking de trabajadores y uso de maquinaria. Los datos mostrados son de demostración.*
 
 ![Listado de maquinaria con su estado operativo](docs/screenshots/maquinaria.png)
-*Gestión de maquinaria: listado con estado (operativo / en mantenimiento) y acciones de edición (datos de demostración).*
+*Gestión de maquinaria y estado operativo con acciones de edición.*
 
 ![Modal de notificaciones con las últimas asignaciones](docs/screenshots/notificaciones.png)
-*Notificaciones en tiempo real sobre asignaciones y estado de la maquinaria, accesibles desde el ícono de campana (datos de demostración).*
+*Notificaciones sobre asignaciones y cambios en el estado de la maquinaria.*
+
+## Seguridad y datos
+
+Las credenciales, claves y configuraciones específicas del entorno se gestionan mediante variables de entorno. El repositorio público no debe contener información de producción ni datos personales reales.
